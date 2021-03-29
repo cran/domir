@@ -39,14 +39,14 @@
 #' Each entry in \code{sets} must be a vector of IVs.  Individual vector elements within a single set are concatenated using \code{+} automatically.
 #' It is possible to use a \code{domin} with only sets (i.e., no IVs in \code{formula_overall}; see examples below). 
 #'
-#' The IV's in \code{all} must also be submitted as a vector, are concatenated with \code{+} automaically, and are also included in the model.
+#' The IV's in \code{all} must also be submitted as a vector, are concatenated with \code{+} automatically, and are also included in the model.
 #' These "all subsets" IVs are removed from the fit statistic and all subsequent dominance statistics.
 #' 
 #' The entry to \code{fitstat} must be list and follow a specific structure: (\code{fit_function}, \code{element_name}, \code{...})
 #' \describe{
 #'  \item{\code{fit_function}}{First element and function to be applied to \code{reg}}
 #'  \item{\code{element_name}}{Second element and name of the element from the object returned by \code{fit_function}}
-#'  \item{\code{...}}{Subsequnt elements and are additional arguments passed to \code{fit_function}}
+#'  \item{\code{...}}{Subsequent elements and are additional arguments passed to \code{fit_function}}
 #' }
 #' 
 #' @keywords multivariate utilities
@@ -116,7 +116,7 @@ Ensemble_Coordinator <- function(Indep_Var_combination, Dep_Var, reg, fitstat, a
     
     fit_value <- do.call(fitstat[[1]], temp_result) # apply fitstat function
     
-    return( list( # return fistat value as associated with IV combination
+    return( list( # return fitstat value as associated with IV combination
         Indep_Var_combination,
         fit_value[[ fitstat[[2]] ]]
     ))
@@ -146,8 +146,14 @@ Ensemble_of_Models <- list() # initialize ensemble list container
 
 for (number_of_Indep_Vars in 1:Total_Indep_Vars) { # applying the modeling function across all IV combinations at a distinct number of IVs
 
-    utils::capture.output( 
-        Models_at_Indep_Var_number <- lapply(as.data.frame(Combination_List[[number_of_Indep_Vars]]), Ensemble_Coordinator, Dep_Var, reg, fitstat, all=all, ...) 
+    utils::capture.output(
+        Models_at_Indep_Var_number <- 
+            lapply((1:ncol(Combination_List[[number_of_Indep_Vars]])), # for all columns of `Combination_List`...
+                function (indep_vars) { 
+                    Ensemble_Coordinator(Combination_List[[number_of_Indep_Vars]][, indep_vars], # ... submit column as independent variables to `Ensemble_Coordinator`
+                                         Dep_Var, reg, fitstat, all=all, ...) 
+                }
+            ) 
     )
 
     Ensemble_of_Models <- append(Ensemble_of_Models, list(Models_at_Indep_Var_number) )
@@ -325,7 +331,7 @@ return_list <- list(
 #'  \item{Fit statistic for the full model as well as the fit statistic for the
 #'  all subsets model if any entries in \code{all}.}
 #'  \item{Matrix describing general dominance statistics, standardized 
-#'  general dominance statisics, and the ranking of the general dominance 
+#'  general dominance statistics, and the ranking of the general dominance 
 #'  statistics.}
 #'  \item{Matrix describing the conditional dominance statistics.}
 #'  \item{If \code{conditional} is \code{TRUE}, matrix describing the complete 
