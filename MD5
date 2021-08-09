@@ -1,7 +1,9 @@
-7e20ced4744c047992a65e10e8387cd0 *DESCRIPTION
+c992b83d0f5ed8b2118f75f16cb44981 *DESCRIPTION
 585fa9940f551d53de915c04cf139e85 *NAMESPACE
-b5bdd767cca001964ed893906f4a4e5b *R/domin.r
-4b650f79aef9d60e3801ae29f945100e *R/domir-package.r
-6c1a0f6868de7708ac2299fae943396f *man/domin.Rd
-d295fc5a389762392542415f88644f33 *man/domir-package.Rd
-6147877aa055181220dda9ea63fd80a8 *man/print.domin.Rd
+282baf8ef0740dd7ba41d542118d849d *NEWS.md
+d640c316f06667b02d6121739dd60ad0 *R/domin.r
+b563f35b28213b1a34fb982b736c3737 *R/domir-package.r
+d1c001840f634ad73c9c7f1d64ad9b89 *README.md
+45ea56df41e9f44e6aaed848a828460b *man/domin.Rd
+11a29bdd8c2cc37dc8a05916420c3722 *man/domir-package.Rd
+7f47c79fa80454d6af346b0ef95f36a4 *man/print.domin.Rd
