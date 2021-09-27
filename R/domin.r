@@ -7,41 +7,54 @@
 #' A valid \code{formula_overall} entry is necessary, even if only submitting entries in \code{sets}, to define a valid left hand side of the prediction equation (see examples).  The function called in \code{reg} must accept one or more responses on the left hand side.
 #' @param reg A function implementing the predictive (or "reg"ression) model called. 
 #' 
-#' String function names (e.g., "lm"), function names (e.g., \code{lm}), or a full functions (e.g., \code{function(x) lm(x)}) are acceptable entries.  This argument's contents are passed to \code{\link{do.call}} and thus any function call \code{do.call} would accept is valid.
+#' String function names (e.g., "lm"), function names (e.g., \code{lm}), or anonymous functions (e.g., \code{function(x) lm(x)}) are acceptable entries.  This argument's contents are passed to \code{\link{do.call}} and thus any function call \code{do.call} would accept is valid.
 #' 
-#' The predictive model in \code{reg} must accept a \code{formula} object as its first argument.
-#' @param fitstat List providing arguments to call a fit statistic extracting function (see details). \code{fitstat} must be of at least length two. 
+#' The predictive model in \code{reg} must accept a \code{formula} object as its first argument or must be adapted to do so with a wrapper function.
+#' @param fitstat List providing arguments to call a fit statistic extracting function (see details). The \code{fitstat} list must be of at least length two. 
 #' 
-#' The first element of \code{fitstat} must be a function implementing the fit statistic extraction. String function names (e.g., "summary"), function names (e.g., \code{summary}), or a full functions (e.g., \code{function(x) summary(x)}) are acceptable entries. This element's contents are passed to \code{\link{do.call}} and thus any function call \code{do.call} would accept is valid.
+#' The first element of \code{fitstat} must be a function implementing the fit statistic extraction. String function names (e.g., "summary"), function names (e.g., \code{summary}), or anonymous functions (e.g., \code{function(x) summary(x)}) are acceptable entries. This element's contents are passed to \code{\link{do.call}} and thus any function call \code{do.call} would accept is valid.
 #' 
 #'The second element of \code{fitstat} must be the named element of the list or vector produced by the fit extractor function called in the first element of \code{fitstat}.  This element must be a string (e.g., "r.squared").
 #' 
 #' All list elements beyond the second are submitted as additional arguments to the fit extractor function call.
 #' 
-#' The fit statistic extractor function in the first list element of \code{fitstat} must accept the model object produced by the predictive modeling function in \code{reg} as its first argument.
+#' The fit statistic extractor function in the first list element of \code{fitstat} must accept the model object produced by the predictive modeling function in \code{reg} as its first argument or be adapted to do so with a wrapper function.
 #' 
 #' The fit statistic produced must be scalar valued (i.e., vector of length 1).
 #' @param sets A list with each element comprised of vectors containing variable/factor names or \code{formula} coercible strings. 
 #' 
-#' The each separate vector in \code{sets} is concatenated (when of length > 1) and used as an entry to the dominance analysis.
+#' Each separate list element-vector in \code{sets} is concatenated (when the list element-vector is of length > 1) and used as an entry to the dominance analysis along with the terms in \code{formula_overall}.
 #' @param all A vector of variable/factor names or \code{formula} coercible strings.  The entries in this vector are concatenated (when of length > 1) but are not used in the dominance analysis.  Rather the value of the fit statistic associated with these terms is removed from the dominance analysis; this vector is used like a set of covariates.
+#' 
+#' The entries in \code{all} are removed from and considered an additional component that explains the fit metric.  As a result, the general dominance statistics will no longer sum to the overall fit metric and the standardized vector will no longer sum to 1.
 #' @param complete Logical.  If \code{FALSE} then complete dominance matrix is not computed.
 #' 
-#' If complete dominance, as an importance criterion, is not desired, not computing complete dominance can save computation time.
+#' If complete dominance is not desired as an importance criterion, avoiding computing complete dominance designations can save computation time.
+#' @param consmodel A vector of variable/factor names, \code{formula} coercible strings, or other formula terms (i.e., 1 to indicate an intercept).  The entries in this vector are concatenated (when of length > 1) and, like the entries of \code{all}, are not used in the dominance analysis; this vector is used as an adjustment to the baseline value of the overall fit statistic.  
+#' 
+#' The use of \code{consmodel} changes the interpretation of the the general and conditional dominance statistics.  When \code{consmodel} is used, the general and conditional dominance statistics are reflect the difference between the constant model and the overall fit statistic values.
+#'  
+#' Typical usage of \code{consmodel} is to pass "1" to set the intercept as the baseline and control for its value when the baseline model's fit statistic value is not 0 (e.g., if using the AIC or BIC as a fit statistic; see examples).
+#' 
+#' As such, this vector is used to set a baseline for the fit statistic when it is non-0. 
+#' @param reverse Logical. If \code{TRUE} then standardized vector, ranks, and complete dominance Designations are reversed in their interpretation.  
+#' 
+#' This argument should be changed to \code{TRUE} if the fit statistic used decreases with better fit to the data (e.g., AIC, BIC). 
 #' @param ... Additional arguments passed to the function call in the \code{reg} argument.
 #'
 #' @return Returns an object of \code{\link{class}} "domin".
 #' An object of class "domin" is a list composed of the following elements:
 #' \describe{
 #'  \item{\code{General_Dominance}}{Vector of general dominance statistics.}
-#'  \item{\code{Standardized}}{Vector of general dominance statistics normalized to be out of 100.}
+#'  \item{\code{Standardized}}{Vector of general dominance statistics normalized to sum to 1.}
 #'  \item{\code{Ranks}}{Vector of ranks applied to the general dominance statistics.}
-#'  \item{\code{Conditional_Dominance}}{Matrix of conditional dominance statistics.}
-#'  \item{\code{Complete_Dominance}}{Logical matrix of complete dominance designations.}
+#'  \item{\code{Conditional_Dominance}}{Matrix of conditional dominance statistics.  Each row represents a term; each column represents an order of terms.}
+#'  \item{\code{Complete_Dominance}}{Logical matrix of complete dominance designations. The term represented in each row indicates dominance status; the terms represented in each columns indicates dominated-by status.}
 #'  \item{\code{Fit_Statistic_Overall}}{Value of fit statistic for the full model.}
-#'  \item{\code{Fit_Statistic_All_Subsets}}{Value of fit statistic associated with IVs in \code{all}.}
+#'  \item{\code{Fit_Statistic_All_Subsets}}{Value of fit statistic associated with terms in \code{all}.}
+#'  \item{\code{Fit_Statistic_Constant_Model}}{Value of fit statistic associated with terms in \code{consmodel}.}
 #'  \item{\code{Call}}{The matched call.}
-#'  \item{\code{Subset_Details}}{List containing the full model and descriptions of IVs in the full model by source.}
+#'  \item{\code{Subset_Details}}{List containing the full model and descriptions of terms in the full model by source.}
 #' }
 #'
 #' @details \code{domin} automates the computation of all possible combination of entries to the dominance analysis (DA), the creation of \code{formula} objects based on those entries, the modeling calls/fit statistic capture, and the computation of all the dominance statistics for the user.
@@ -50,7 +63,7 @@
 #' 
 #' One specific instance of this deconstruction is in generating the number of entries to the DA. The number of entries is taken as all the \code{terms} from \code{formula_overall} and the separate list element vectors from \code{sets}. The entries themselves are concatenated into a single formula, combined with the entries in \code{all}, and submitted to the predictive modeling function in \code{reg}.  Each different combination of entries to the DA forms a different \code{formula} and thus a different model to estimate.
 #' 
-#' For example, this \code{domin} call:
+#' For example, consider this \code{domin} call:
 #' 
 #' \code{domin(y ~ x1 + x2, lm, list(summary, "r.squared"), sets = list(c("x3", "x4")), all = c("c1", "c2"), data = mydata))}
 #' 
@@ -86,17 +99,18 @@
 #' 
 #' \code{summary(lm_obj)["r.squared"]}
 #' 
-#' As can be seen, the entry to \code{fitstat} must be list and follow a specific structure: 
+#' where \code{lm_obj} is the model object returned by \code{lm}. 
+#' 
+#' The entries to \code{fitstat} must be as a list and follow a specific structure: 
 #' \code{list(fit_function, element_name, ...)}
 #' \describe{
 #'  \item{\code{fit_function}}{First element and function to be applied to the object produced by the \code{reg} function}
-#'  \item{\code{element_name}}{Second element and name of the element from the object returned by \code{fit_function}}
+#'  \item{\code{element_name}}{Second element and name of the element from the object returned by \code{fit_function} to be used as a fit statistic.  The fit statistic must be scalar-valued/length 1}
 #'  \item{\code{...}}{Subsequent elements and are additional arguments passed to \code{fit_function}}
 #' }
 #' 
 #' In the case that the model object returned by \code{reg} includes its own fit statistic without the need for an extractor function, the user can apply an anonymous function following the required format to extract it.
 #' 
-#' @keywords multivariate utilities
 #' @export
 #' @examples
 #' ## Basic linear model with r-square
@@ -138,21 +152,32 @@
 #'   list("summary", "r.squared"), 
 #'   data = mtcars, 
 #'   sets = list(c("am", "vs"), c("cyl", "disp"), c("qsec", "carb")))
+#'   
+#' ## Constant model using AIC
+#' 
+#' domin(mpg ~ am + carb + cyl, 
+#'   lm, 
+#'   list(function(x) list(aic = extractAIC(x)[[2]]), "aic"), 
+#'   data = mtcars, 
+#'   reverse = TRUE, consmodel = "1")
 
 domin <- 
   function(formula_overall, reg, fitstat, sets = NULL, all = NULL, 
-           complete = TRUE, ...) {
+           complete = TRUE, consmodel = NULL, reverse = FALSE, ...) {
     
 # Initial exit/warning conditions ---- 
     
 if (!methods::is(formula_overall, "formula")) 
-    stop(paste(formula_overall, "is not a formula object.  Coerce it to formula before use in domin."))
+  stop(paste(formula_overall, "is not a formula object.  Coerce it to formula before use in domin."))
     
 if (!is.list(fitstat)) 
-    stop("fitstat is not a list.  Please submit it as a list object.")
+  stop("fitstat is not a list.  Please submit it as a list object.")
     
 if (length(sets) > 0 & !is.list(sets)) 
-    stop("sets is not a list.  Please submit it as a list object.")
+  stop("sets is not a list.  Please submit it as a list object.")
+    
+if (is.list(all)) 
+  stop("all is a list.  Please submit it as a vector.")
   
 if (!attr(stats::terms(formula_overall), "response")) 
     stop(paste(deparse(formula_overall), "missing a response.  Please supply a valid response."))
@@ -168,6 +193,8 @@ if (length(fitstat) < 2)
 Indep_Vars <- 
     attr(stats::terms(formula_overall), "term.labels") # obtain IV name vector from `formula_overall`
 
+intercept <- as.logical(attr(stats::terms(formula_overall), "intercept") ) # does the model have an intercept?  Needed for `reformulate`
+
 if (length(sets) > 0) { # if there are sets...
     
     set_aggregated <- 
@@ -179,7 +206,7 @@ if (length(sets) > 0) { # if there are sets...
 }
 
 Dep_Var <- 
-    attr(stats::terms(formula_overall),"variables")[[2]] # pull out DV name from `formula_overall`
+    attr(stats::terms(formula_overall), "variables")[[2]] # pull out DV name from `formula_overall`
 
 Total_Indep_Vars <- length(Indep_Vars) # count number of IVs and sets in model
 
@@ -201,13 +228,16 @@ Total_Models_to_Estimate <- 2**Total_Indep_Vars - 1 # total number of models to 
 # Define function to call regression models ----
 
 # function to call regression models for modeling
-doModel_Fit <- function(Indep_Var_Combination, Dep_Var, reg, fitstat, all=NULL, ...) {
+doModel_Fit <- function(Indep_Var_Combination, Dep_Var, 
+                        reg, fitstat, all = NULL, consmodel = NULL, intercept, ...) {
 
     formula_to_use <- 
-        stats::formula( # build formula to submit to modeling function by...
-            paste0(deparse(Dep_Var), " ~ ", # ...combining the DV with...
-                   paste0(c(Indep_Var_Combination, all), collapse = " + " )) #...the set of IVs submitted 
-        )
+        # formula( # build formula to submit to modeling function by...
+        #     paste0(deparse(Dep_Var), " ~ ", # ...combining the DV with...
+        #            paste0(c(Indep_Var_Combination, all), collapse = " + " )) #...the set of IVs submitted 
+        # )
+      stats::reformulate(c(Indep_Var_Combination, all, consmodel), 
+                  response = Dep_Var, intercept = intercept)
 
     Model_Result <- 
         list( # capture data from the called model as a list...
@@ -229,19 +259,29 @@ doModel_Fit <- function(Indep_Var_Combination, Dep_Var, reg, fitstat, all=NULL, 
 
 }
 
-# All subsets adjustment ----
+# Constant model adjustments ----
 
-if (length(all) > 0) { # if there are entries in all...
-    All_Result <- 
-        doModel_Fit(all, Dep_Var, reg, fitstat, ...) # ...obtain their `fitstat` value as well...
-    FitStat_Adjustment <- 
-        All_Result[["value"]] # ...and log the value as the adjustment to the fitstat
+if (length(consmodel) > 0) { # if there are entries in consmodel...
+  Cons_Result <- 
+    doModel_Fit(NULL, consmodel = consmodel, Dep_Var, reg, fitstat, intercept = intercept, ...) # ...obtain their `fitstat` value...
+  FitStat_Adjustment <- Cons_Result[["value"]] # ...and add the value as the adjustment to the fitstat
 }
 
 else {
-    All_Result <- NULL # ...otherwise return a null
-    FitStat_Adjustment <- 0 # ...and a 0 for fitstat adjustment
+  Cons_Result <- NULL # ...otherwise return a null
+  FitStat_Adjustment <- 0
 }
+
+# All subsets adjustment ----
+
+if (length(all) > 0) { # if there are entries in all...
+  All_Result <- 
+    doModel_Fit(NULL, all = all, consmodel = consmodel, Dep_Var, reg, fitstat, intercept = intercept, ...) # ...obtain their `fitstat` value as well...
+  FitStat_Adjustment <- 
+    All_Result[["value"]] # ...and log the value as the adjustment to the fitstat (replacing consmodel)
+}
+
+else All_Result <- NULL # ...otherwise return a null
 
 # Obtain all subsets regression results ----
 
@@ -250,19 +290,12 @@ else {
 # 2. Middle level is model within a number of IVs
 # 3. Bottom level is a specific result from `do.call`
 
-# ensemble_begin = 0 # note where the ensemble of models has begun for this set of IVs (relevant for tracking progress only)
-# ensemble_end = 0 # note where the ensemble of models has ended for this set of IVs (relevant for tracking progress only)
-# 
-# if Total_Indep_Vars > 4: # if at least 20 models, note which models will report a '.' when estimating
-#     flag_list = [int(twentieth/20*Total_Models_to_Estimate) for twentieth in range(1,21)]
-# else: flag_list = [] # if not at least 20 models, do not track  progress
-
 # low-level function to identify the specific set of IVs to submit to `doModel_Fit` - called by `doModel_Coordinator`
 doModel_ListSelector <- function(Indep_Vars_Chosen, Number_of_Indep_Vars) { 
     
     doModel_Fit(
         Combination_List[[Number_of_Indep_Vars]][, Indep_Vars_Chosen], # From the list at a specific number of IVs in the model, choose one unique combination (which is associated with the columns of the matrices returned by `combn`)...
-        Dep_Var, reg, fitstat, all=all, ...) # ...and submit all other pertinent information for model fitting - other names assumed pulled from parent env scope
+        Dep_Var, reg, fitstat, all = all, consmodel = consmodel, intercept = intercept, ...) # ...and submit all other pertinent information for model fitting - other names assumed pulled from parent env scope
     # ensemble_begin = ensemble_end # update where the ensemble tracker will begin for next round
     
 }
@@ -356,79 +389,7 @@ Model_List <- lapply(1:length(Ensemble_of_Models), Prepare_domList) # for all nu
 # 3. Bottom level is a specific increment's information (full_model, reduced_model, fit metric difference)
 
 
-# Obtain complete and conditional dominance statistics ----
-
-# Conditional_Dominance <- matrix(nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # conditional dominance container
-# 
-# if (complete) Complete_Dominance <- 
-#     matrix(data=0, nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # complete dominance container
-# 
-# else Complete_Dominance <- NULL
-# 
-# for (Indep_Var in 1:Total_Indep_Vars) { # for each IV in the model...
-# 
-#     Conditional_Dominance[Indep_Var, 1] <- 
-#         Model_List[[1]][[Indep_Var]][["increment"]] # for single IV models, copy fit statistic as conditional dominance entry in first column...
-# 
-#     Indep_Varname <- 
-#         Model_List[[1]][[Indep_Var]][["names_curr"]] #... and record name of focal IV for use below
-# 
-#     if (complete) 
-#         Complete_atIndep_Var <- # produces logical vector indicating a comparison that represents ...
-#         ( Model_List[[1]][[Indep_Var]][["increment"]] > #... is focal IV's increment bigger than ...
-#              sapply(Model_List[[1]], # ... other models at one IV ... 
-#                     function(specific_fit_stat) specific_fit_stat[["increment"]] ) ) # ... when compared to their increments (note)
-
-#     for (number_of_Indep_Vars in 2:Total_Indep_Vars) { # for all numbers of IVs greater than 1...
-# 
-#         Relevant_Increments <- 
-#             vector(mode="numeric", length=choose(Total_Indep_Vars-1, number_of_Indep_Vars-1)) # initialize/reset container for collecting specific/relevant conditional dominance increments
-#         
-#         place = 1
-# 
-#         for (model in 1:length(Model_List[[number_of_Indep_Vars]])) { # for each individual model within a specific number of IVs...
-# 
-#             proceed_to_record <- any(intersect(Indep_Varname, Model_List[[number_of_Indep_Vars]][[model]][["names_curr"]])==Indep_Varname) &  # flag this entry for recording if the focal IV name is in the IV set...
-#                !any(intersect(Indep_Varname, Model_List[[number_of_Indep_Vars]][[model]][["names_prev"]])==Indep_Varname) # ...but is _not_ in the IV set less one - thus, the fit statistic here is a valid "increment" for the focal IV
-# 
-#             if (proceed_to_record) {
-#                 Relevant_Increments[[place]] <- Model_List[[number_of_Indep_Vars]][[model]][["increment"]] # always collect the fit statistic for conditional dominance computations
-#                 place <- place +1 
-#             }
-# 
-#             if (complete) {
-#                 for (other_model in 1:length(Model_List[number_of_Indep_Vars])) { # also proceed to collect complete dominance data using this loop comparing to all other models within this number of IVs to find relevant comparisons
-# 
-#                        relevant_complete <- ( # a relevant complete dominance comparison is found when ...
-#                             setequal(Model_List[[number_of_Indep_Vars]][[model]][[2]], Model_List[[number_of_Indep_Vars]][[other_model]][[2]]) & # ...the focal full model and the full other model have the same IV set (the only way they can be a 'subset' here) ...
-#                                 (length(setdiff(Model_List[[number_of_Indep_Vars]][[model]][[1]], Model_List[[number_of_Indep_Vars]][[other_model]][[1]])) == 1) ) #... but their reduced IV set differs by one IV (this ensures it is not trying to compare the subset to itself)
-# 
-# 
-#                     if (relevant_complete) {
-#                         MatrixLocation_Complete <- (1:Total_Indep_Vars)[ Indep_Vars %in% 
-#                             setdiff(Model_List[[number_of_Indep_Vars]][[other_model]][[1]], Model_List[[number_of_Indep_Vars]][[model]][[1]]) ] #... the different element in the reduced model (to place it in the correct "row" for the dominance matrix/list)
-#                         
-#                         Complete_atIndep_Var[MatrixLocation_Complete] <- as.integer( #at the correct location in the complete dominance matrix, append...
-#                             all(Model_List[[number_of_Indep_Vars]][[model]][["increment"]] > 
-#                                   Model_List[[number_of_Indep_Vars]][[other_model]][["increment"]],  
-#                                 as.logical(Complete_atIndep_Var[MatrixLocation_Complete]))) # ...whether the other model's increment is bigger than the focal
-#                     }
-#                 
-#                 }
-# 
-#             }
-# 
-#         }
-#         
-#         Conditional_Dominance[Indep_Var, number_of_Indep_Vars] <- 
-#             mean(Relevant_Increments) # compute conditional dominance at number of IVs for specific IV and append
-#     
-#     }
-#     
-#     if (complete) Complete_Dominance[Indep_Var,] <- 
-#         as.integer(Complete_atIndep_Var) # append full row of IV's complete dominance logicals/designations
-# 
-# }
+# Obtain conditional dominance statistics ----
 
 Conditional_Dominance <- matrix(nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # conditional dominance container
 
@@ -458,8 +419,6 @@ for (IV_Location in 1:Total_Indep_Vars) {
        
 }
 
-#print(Conditional_Dominance)
-
 # Obtain complete dominance statistics ----
 
 Identify_domComplt <- function (Increment, focalIV, compIV) { 
@@ -471,11 +430,11 @@ Identify_domComplt <- function (Increment, focalIV, compIV) {
         (length(Increment[["names_curr"]]) > 1) ))
     value <- Increment
   
-  else if ( (is.element(focalIV, Increment[["names_curr"]])) & 
+  else if ( (is.element(focalIV, Increment[["names_curr"]])) & # marked not covered in tests but clearly executes
             (length(Increment[["names_curr"]]) == 1) )
     value <- Increment
   
-  else value <- NA
+  else value <- NA # marked not covered in tests but clearly executes
   
   return(value)
   
@@ -493,6 +452,9 @@ domComplt_Comparator <- function(focal_model, comp_model, focalIV, compIV) {
     value <- focal_model[["increment"]] > comp_model[["increment"]]
   
   else value <- NA
+  
+  if (!is.na(value) && focal_model[["increment"]] == comp_model[["increment"]]) # if fit metrics identical - they're NA
+    value <- NA
   
   return(value)
   
@@ -515,12 +477,6 @@ Prepare_domComplt <- function(IncrementList, focalIV, compIV) {
   if (length(Null_Elements2) > 0) # if there are NULL elements...
     relevantIncs2 <- relevantIncs2[ -Null_Elements2 ] # ... remove them before returning
   
-  #str(relevantIncs)
-  
-  #print("sep")
-  
-  #str(relevantIncs2)
-  
   Focal_Models_Length <- length(relevantIncs) # record number of models at current IVs
   Comp_Models_Length <- length(relevantIncs2) # record number of models at one less IVs
   
@@ -535,14 +491,17 @@ Prepare_domComplt <- function(IncrementList, focalIV, compIV) {
                             focalIV=focalIV, compIV=compIV,
                             SIMPLIFY = TRUE)
   
-  #print(Focal_Comp_logi)
-  
   Null_Elements3 <- which(is.na(Focal_Comp_logi)) # identify NULL list elements
   
   if (length(Null_Elements3) > 0) # if there are NULL elements...
     Focal_Comp_logi <- Focal_Comp_logi[ -Null_Elements3 ] # ... remove them before returning
   
-  return(sum(Focal_Comp_logi))
+  #return(sum(Focal_Comp_logi))
+  compile_compare <- ifelse(length(Focal_Comp_logi) == 0, 
+                            NA, ifelse(all(Focal_Comp_logi),
+                                       TRUE, ifelse(all(!Focal_Comp_logi), 
+                                                    FALSE, NA)))  #ensure that mixes of F & T get correctly classified
+  return(compile_compare)
   
 }
 
@@ -550,8 +509,6 @@ if (complete) {
   
   Complete_Dominance <- 
     matrix(data=NA, nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # complete dominance container
-  
-  #print(Indep_Vars)
   
   for (IV_Col in 1:(Total_Indep_Vars-1)) {
 
@@ -583,11 +540,9 @@ if (complete) {
 
 else Complete_Dominance <- NULL
 
-#print(Complete_Dominance)
+if (reverse == TRUE) Complete_Dominance <- !Complete_Dominance # reverse all designations with `reverse`
 
-#if (complete) Complete_Dominance <- Complete_Dominance + t(-Complete_Dominance) # ensure symmetry of complete dominance matrix
-
-# Obtain complete dominance statistics ----
+# Obtain general dominance statistics ----
 
 General_Dominance <- 
     apply(Conditional_Dominance, 1, mean) # average conditional dominance statistics to produce general dominance
@@ -597,7 +552,8 @@ General_Dominance <-
 FitStat <- 
     sum(General_Dominance) + FitStat_Adjustment # adjust overall fit statistic by replacing all subsets component and constant model component
 
-General_Dominance_Ranks <- rank(-General_Dominance) # rank general dominance statistic
+if (reverse == FALSE) General_Dominance_Ranks <- rank(-General_Dominance) # rank general dominance statistic if fitstat value increases (i.e., `reverse` == FALSE)
+else General_Dominance_Ranks <- rank(General_Dominance) # rank general dominance statistic if fitstat value decreases (i.e., `reverse` == TRUE)
 
 # Finalize returned values and attributes ----
 
@@ -613,20 +569,27 @@ dimnames(Conditional_Dominance) <- list(IV_Labels, paste0("IVs_", 1:length(Indep
 if (complete) 
   dimnames(Complete_Dominance) <- list(paste0("Dmnates_", IV_Labels),  paste0("Dmnated_", IV_Labels))
 
+if (reverse == FALSE) # Standardized if fitstat increases...
+       Standardized <- General_Dominance/(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result[["value"]], 0)) # ...then use normal standardization...
+       else Standardized <- -General_Dominance/-(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result[["value"]], 0)) # ...otherwise reverse the general dominance stats to standardize
+
 return_list <- list(
     "General_Dominance" = General_Dominance,
-    "Standardized" = General_Dominance/FitStat,
+    "Standardized" = Standardized,
     "Ranks" = General_Dominance_Ranks,
     "Conditional_Dominance" = Conditional_Dominance,
     "Complete_Dominance" = Complete_Dominance,
     "Fit_Statistic_Overall" = FitStat,
-    "Fit_Statistic_All_Subsets" = All_Result[["value"]],
+    "Fit_Statistic_All_Subsets" = 
+      All_Result[["value"]] - ifelse(is.null(Cons_Result[["value"]]), 0, Cons_Result[["value"]]),
+    "Fit_Statistic_Constant_Model" = Cons_Result[["value"]],
     "Call" = match.call(),
     "Subset_Details" = list(
-        "Full_Model" = paste0(deparse(Dep_Var), " ~ ", (paste0(c(Combination_List[[Total_Indep_Vars]], all), collapse=" + "))), 
+        "Full_Model" = stats::reformulate(c(Combination_List[[Total_Indep_Vars]], all, consmodel), response = Dep_Var, intercept = intercept),
         "Formula" = attr(stats::terms(formula_overall), "term.labels"), 
         "All" = all,
-        "Sets" = sets
+        "Sets" = sets,
+        "Constant" = consmodel
     )
 )
 
@@ -638,30 +601,29 @@ return_list <- list(
 
 #' Print method for \code{domin}
 #'
-#' Reports basic results from \code{domin} class object.
+#' Reports formatted results from \code{domin} class object.
 #' @param x an object of class "domin".
 #' @param ... further arguments passed to or from other methods.
-#' @return None. This method is called only for side-effect of printing 
-#' to the console.
-#' @details The print method for class \code{domin} objects reports out the 
-#' following results:
+#' @return None. This method is called only for side-effect of printing to the console.
+#' @details The print method for class \code{domin} objects reports out the following results:
 #' \itemize{
 #'  \item{Fit statistic for the full model as well as the fit statistic for the
-#'  all subsets model if any entries in \code{all}.}
+#'  all subsets model if any entries in \code{all} as well as \code{consmodel}}
 #'  \item{Matrix describing general dominance statistics, standardized 
 #'  general dominance statistics, and the ranking of the general dominance 
-#'  statistics.}
+#'  statistics}
 #'  \item{Matrix describing the conditional dominance statistics.}
 #'  \item{If \code{conditional} is \code{TRUE}, matrix describing the complete 
-#'  dominance statistics.}
-#' }
-#' @keywords print
+#'  dominance designations}
+#'  \item{If there are entries in \code{sets} and/or \code{all} the terms included in each set as well as the terms in all subsets are reported}}
+#'  The \code{domin} print method alters dimension names for readability and they do not display as stored in the \code{domin} object.
 #' @export
 
 print.domin <- function(x, ...) {
 
 cat("Overall Fit Statistic:     ", x[["Fit_Statistic_Overall"]], "\n")
 if (length(x[["Fit_Statistic_All_Subsets"]]) > 0) cat("All Subsets Fit Statistic: ", x[["Fit_Statistic_All_Subsets"]],"\n")
+  if (length(x[["Fit_Statistic_Constant_Model"]]) > 0) cat("Constant Model Fit Statistic: ", x[["Fit_Statistic_Constant_Model"]],"\n")
 cat("\n")
 cat("General Dominance Statistics:\n")
 Display_Std <- 
