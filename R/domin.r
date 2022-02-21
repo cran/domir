@@ -27,6 +27,9 @@
 #' @param all A vector of variable/factor names or \code{formula} coercible strings.  The entries in this vector are concatenated (when of length > 1) but are not used in the dominance analysis.  Rather the value of the fit statistic associated with these terms is removed from the dominance analysis; this vector is used like a set of covariates.
 #' 
 #' The entries in \code{all} are removed from and considered an additional component that explains the fit metric.  As a result, the general dominance statistics will no longer sum to the overall fit metric and the standardized vector will no longer sum to 1.
+#' @param conditional Logical.  If \code{FALSE} then conditional dominance matrix is not computed.
+#' 
+#' If conditional dominance is not desired as an importance criterion, avoiding computing the conditional dominance matrix can save computation time.
 #' @param complete Logical.  If \code{FALSE} then complete dominance matrix is not computed.
 #' 
 #' If complete dominance is not desired as an importance criterion, avoiding computing complete dominance designations can save computation time.
@@ -163,24 +166,24 @@
 
 domin <- 
   function(formula_overall, reg, fitstat, sets = NULL, all = NULL, 
-           complete = TRUE, consmodel = NULL, reverse = FALSE, ...) {
+           conditional = TRUE, complete = TRUE, consmodel = NULL, reverse = FALSE, ...) {
     
 # Initial exit/warning conditions ---- 
     
-if (!methods::is(formula_overall, "formula")) 
-  stop(paste(formula_overall, "is not a formula object.  Coerce it to formula before use in domin."))
+if (!inherits(formula_overall, "formula")) 
+  stop(paste(formula_overall, "is not a 'formula' class object."))
     
 if (!is.list(fitstat)) 
-  stop("fitstat is not a list.  Please submit it as a list object.")
+  stop("fitstat is not a list.")
     
 if (length(sets) > 0 & !is.list(sets)) 
-  stop("sets is not a list.  Please submit it as a list object.")
+  stop("sets is not a list.")
     
 if (is.list(all)) 
   stop("all is a list.  Please submit it as a vector.")
   
 if (!attr(stats::terms(formula_overall), "response")) 
-    stop(paste(deparse(formula_overall), "missing a response.  Please supply a valid response."))
+    stop(paste(deparse(formula_overall), "missing a response."))
   
 if (any(attr(stats::terms(formula_overall), "order") > 1))
     warning(paste(deparse(formula_overall), "contains second or higher order terms. domin may not handle them correctly."))
@@ -215,56 +218,47 @@ if (Total_Indep_Vars < 2)
     stop(paste("Total of", Total_Indep_Vars, "independent variables or sets. At least 2 needed for useful dominance analysis."))
 
 # Create independent variable/set combination list ----
-    
-Combination_List <- 
-    lapply( (1:length(Indep_Vars)), # Repeating over different numbers of IVs chosen at once in the model...
-            function(Number_in_Combo) {
-                utils::combn(Indep_Vars, Number_in_Combo) # ...obtain all combinations choosing a considering a specific number of IVs chosen given the entire IV name vector
-            } 
-    )
+
+Combination_Matrix <- 
+  expand.grid(
+    lapply(1:Total_Indep_Vars, 
+           function(x) c(FALSE, TRUE)), 
+    KEEP.OUT.ATTRS = FALSE)[-1,] # Logical matrix of inclusion/exclusion for IVs; omit the first, empty row
 
 Total_Models_to_Estimate <- 2**Total_Indep_Vars - 1 # total number of models to estimate
 
 # Define function to call regression models ----
 
-# function to call regression models for modeling
-doModel_Fit <- function(Indep_Var_Combination, Dep_Var, 
-                        reg, fitstat, all = NULL, consmodel = NULL, intercept, ...) {
-
-    formula_to_use <- 
-        # formula( # build formula to submit to modeling function by...
-        #     paste0(deparse(Dep_Var), " ~ ", # ...combining the DV with...
-        #            paste0(c(Indep_Var_Combination, all), collapse = " + " )) #...the set of IVs submitted 
-        # )
-      stats::reformulate(c(Indep_Var_Combination, all, consmodel), 
-                  response = Dep_Var, intercept = intercept)
-
+doModel_Fit <- function(Indep_Var_Combin_lgl, Indep_Vars, Dep_Var, # assumes receipt of a logical matrix indicating which IVs to use as well as IV list and DV
+                        reg, fitstat, all = NULL, consmodel = NULL, intercept, ...) { # also regression function, fitstat function, with all and consmodel arguments along with an intercept argument for reformulate
+  
+  Indep_Var_Combination <- Indep_Vars[Indep_Var_Combin_lgl] # select vector of IVs
+  
+  formula_to_use <- 
+    stats::reformulate(c(Indep_Var_Combination, all, consmodel), # 'reformulate' formula to submit to model
+                       response = Dep_Var, intercept = intercept)
+  
+  Model_Result <- # capture the model object ...
+    list( # ... as an element of a list, needed for next step calling fit statistic function ...
+      do.call(reg, list(formula_to_use, ...) ) # ... from `do.call` invoking the modeling function with formula and all other arguments as the ellipsis
+    ) 
+  
+  if (length(fitstat) > 2) # if there are additional arguments to pass to the fitstat function, indicated by having length of > 2 for this list...
     Model_Result <- 
-        list( # capture data from the called model as a list...
-            do.call(reg, list(formula_to_use, ...) ) # ...`do.call` modeling function with formula and all other arguments
-        ) 
-    
-    if (length(fitstat) > 2) # if there are additional arguments to pass to the fitstat function, indicated by having length of > 2 for this list...
-        Model_Result <- 
-            append(Model_Result, fitstat[3:length(fitstat)]) # ...append these additional arguments to `temp_result`
-    
-    Fit_Value <- do.call(fitstat[[1]], Model_Result) # use first entry of `fitstat` as fitstat function name, use `Model_Result` as results to submit to it
-    
-    return( 
-        list( # `doModel_Fit` then returns (as list)...
-            "names" = Indep_Var_Combination, # ... the combo of IVs used ...
-            "value" = Fit_Value[[ fitstat[[2]] ]] # ... and uses second, necessarily named, argument of `fitstat` to select the result of `Fit_Value` to return
-        )
-    )
-
+    append(Model_Result, fitstat[3:length(fitstat)]) # ...append these additional arguments to 'Model_Result' for coming `do.call`
+  
+  Fit_Value <- do.call(fitstat[[1]], Model_Result) # use first entry of `fitstat` as fitstat function name, use `Model_Result` as results to submit to it
+  
+  return( Fit_Value[[ fitstat[[2]] ]] ) # ... use second, necessarily named, argument of `fitstat` to select the result of `Fit_Value` to return
+  
 }
 
 # Constant model adjustments ----
 
 if (length(consmodel) > 0) { # if there are entries in consmodel...
-  Cons_Result <- 
-    doModel_Fit(NULL, consmodel = consmodel, Dep_Var, reg, fitstat, intercept = intercept, ...) # ...obtain their `fitstat` value...
-  FitStat_Adjustment <- Cons_Result[["value"]] # ...and add the value as the adjustment to the fitstat
+
+  FitStat_Adjustment <- Cons_Result <- doModel_Fit(NULL, Indep_Vars, Dep_Var, reg, fitstat, consmodel = consmodel, intercept = intercept, ...) # ...obtain their fitstat' value using `doModel_Fit()`
+
 }
 
 else {
@@ -275,264 +269,117 @@ else {
 # All subsets adjustment ----
 
 if (length(all) > 0) { # if there are entries in all...
-  All_Result <- 
-    doModel_Fit(NULL, all = all, consmodel = consmodel, Dep_Var, reg, fitstat, intercept = intercept, ...) # ...obtain their `fitstat` value as well...
-  FitStat_Adjustment <- 
-    All_Result[["value"]] # ...and log the value as the adjustment to the fitstat (replacing consmodel)
+  
+  FitStat_Adjustment <- All_Result <- doModel_Fit(NULL, Indep_Vars, Dep_Var, reg, fitstat, all = all, consmodel = consmodel, intercept = intercept, ...) # ...obtain their 'fitstat' value as well using `doModel_fit()`...
+  
 }
 
 else All_Result <- NULL # ...otherwise return a null
 
 # Obtain all subsets regression results ----
 
-# 'Ensemble_of_Models' is structured such that:
-# 1. Top level is results by number of IVs in the model
-# 2. Middle level is model within a number of IVs
-# 3. Bottom level is a specific result from `do.call`
-
-# low-level function to identify the specific set of IVs to submit to `doModel_Fit` - called by `doModel_Coordinator`
-doModel_ListSelector <- function(Indep_Vars_Chosen, Number_of_Indep_Vars) { 
-    
-    doModel_Fit(
-        Combination_List[[Number_of_Indep_Vars]][, Indep_Vars_Chosen], # From the list at a specific number of IVs in the model, choose one unique combination (which is associated with the columns of the matrices returned by `combn`)...
-        Dep_Var, reg, fitstat, all = all, consmodel = consmodel, intercept = intercept, ...) # ...and submit all other pertinent information for model fitting - other names assumed pulled from parent env scope
-    # ensemble_begin = ensemble_end # update where the ensemble tracker will begin for next round
-    
-}
-
-# high-level function to coordinate listing of models within a specific number of IVs
-doModel_Coordinator <- function(Number_of_Indep_Vars) { 
-    
-    lapply(1:ncol(Combination_List[[Number_of_Indep_Vars]]), # list apply `doModel_ListSelector` over all combinations of IVs at a single number of IVs in the model
-           doModel_ListSelector, Number_of_Indep_Vars) 
-    
-}
-
-# list apply `doModel_Coordinator` across all numbers of IVs in the model
-Ensemble_of_Models <- # as a list ...
-  lapply(1:Total_Indep_Vars, doModel_Coordinator) #... call `doModel_Coordinator` over all numbers of IVs in the model
-
-
-# Process all subsets - find the increments ----
-
-# low-level function to compute model fit increments related to IVs 
-    #called by Ensemble_Fitstat_domIncrementor below
-Identify_domIncrement <- function (IVs, IVs_previous) { 
-    
-    if (all(is.na(unlist(IVs_previous)))) # if there is are all NAs in the previous IVs (i.e., by design in models with 1 IV)... 
-        
-        value <- list(names_curr = IVs[["names"]], # include IV names at focal ...
-                      names_prev = "", # ...IV names at one less (which are an empty string...
-                      increment = IVs[["value"]] - FitStat_Adjustment) # ...and the increment to the fit metric
-    
-    else if ( length(intersect(IVs[["names"]], IVs_previous[["names"]])) == #... models in previous are all in current - valid increment ...
-              length(IVs_previous[["names"]]) ) 
-        
-        value <- list(names_curr = IVs[["names"]], # include IV names at focal ...
-                      names_prev = IVs_previous[["names"]], # ...IV names at one less...
-                      increment = IVs[["value"]] - IVs_previous[["value"]]) # ...and the increment to the fit metric
-    
-    else value <- NULL # ... otherwise the models in previous are not all in current - invalid increment; return a NULL
-    
-    return(value)
-    
-}
-
-# mid-level function to coordinate finding all valid fitstat increments 
-    # called by Prepare_domList below
-Ensemble_Fitstat_domIncrementor <- 
-    function(List_of_Models, List_of_Models_Previous) {
-    
-    domIncrement_Lists <-
-        mapply(Identify_domIncrement,  # call Identify_domIncrement ...
-               List_of_Models, List_of_Models_Previous, #... submit candidate models for current IV and one less IV
-               SIMPLIFY = FALSE) # do not simplify object to non-list/retain list type
-    
-    Null_Elements <- which(sapply(domIncrement_Lists, is.null)) # identify NULL list elements
-    
-    if (length(Null_Elements) > 0) # if there are NULL elements...
-        domIncrement_Lists <- 
-            domIncrement_Lists[ -Null_Elements ] # ... remove them before returning
-
-    return( domIncrement_Lists )
-
-}
-
-# top-level function to prepare model lists for finding increments
-Prepare_domList <- function(Number_of_Indep_Vars) {
-    
-    if (Number_of_Indep_Vars > 1) Previous_Models <- # if a list of multi_IV models ...
-            Ensemble_of_Models[[Number_of_Indep_Vars-1]] #... obtain the list of models at one less IV
-    else Previous_Models <- NA #... otherwise this is the 1 IV list - there are no models at one less.
-    
-    Current_Models <- Ensemble_of_Models[[Number_of_Indep_Vars]] # collect models at current numbers of IVs
-    
-    Current_Models_Length <- length(Current_Models) # record number of models at current IVs
-    Previous_Models_Length <- length(Previous_Models) # record number of models at one less IVs
-    
-    Current_Models <- # "spread" current models at number of previous models to find combinations
-        rep(Current_Models, each=Previous_Models_Length)
-    
-    Previous_Models <- # repeat one less IV models at number of current models to find combinations
-        rep(Previous_Models, times=Current_Models_Length)
-    
-    return( Ensemble_Fitstat_domIncrementor( # submit all combinations to Ensemble_Fitstat_domIncrementor
-        Current_Models, Previous_Models) )
-}
-
-
-Model_List <- lapply(1:length(Ensemble_of_Models), Prepare_domList) # for all numbers of IVs in model
-
-# 'Model_List' is structured such that:
-# 1. Top level is results by number of IVs in the model
-# 2. Middle level is model within a number of IVs
-# 3. Bottom level is a specific increment's information (full_model, reduced_model, fit metric difference)
-
+Ensemble_of_Models <- 
+  sapply(1:nrow(Combination_Matrix), # for all individual models/rows in the logical combination matrix...
+         function(x) { # ... submit the row number ...
+           doModel_Fit(unlist(Combination_Matrix[x,]), # ... select a unique pattern of IVs as a logical vector from the combination matrix ...
+                        Indep_Vars, Dep_Var, reg, fitstat, # ... and submit all model information
+                        all = all, consmodel = consmodel, intercept = intercept, ...)
+         },
+         simplify = TRUE, USE.NAMES = FALSE)
 
 # Obtain conditional dominance statistics ----
 
-Conditional_Dominance <- matrix(nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # conditional dominance container
+if (conditional) {
 
-Identify_domCondit <- function (focalIV, CandidateIncrement) { 
+  Conditional_Dominance <- 
+    matrix(nrow = Total_Indep_Vars, ncol = Total_Indep_Vars) # conditional dominance container
   
-  if (is.element(focalIV, CandidateIncrement[["names_curr"]]) &
-      !is.element(focalIV, CandidateIncrement[["names_prev"]]) )
-    value <- CandidateIncrement[["increment"]]
-
-  else value <- NA 
+  Combination_Matrix_Anti <-!Combination_Matrix # complement of logical IV inclusion matrix
   
-  return(value)
+  IVs_per_Model <- rowSums(Combination_Matrix) # count IVs in each model using logical IV inclusion matrix
   
-}
-
-for (IV_Location in 1:Total_Indep_Vars) {
+  Combins_at_Order <- 
+    sapply(IVs_per_Model, # for each IV/column, ... 
+           function(x) choose(Total_Indep_Vars, x), # ... compute # of combinations associated with each row given the total number of IVs
+           simplify = TRUE, USE.NAMES = FALSE)
   
-  IV_name <- Model_List[[1]][[IV_Location]][["names_curr"]]
+  Combins_at_Order_Prev <- 
+    sapply(IVs_per_Model, # for each IV/column, ... 
+           function(x) choose(Total_Indep_Vars - 1, x),# ... compute # of combinations associated with each row given the total number of IVs (i.e., # of combinations _not_ including focal IV)
+           simplify = TRUE, USE.NAMES = FALSE)
   
-  for (numIndepVars in 1:Total_Indep_Vars) {
+  Weighted_Order_Ensemble <- # create a matrix indicating how many unique combinations are associated with each number of IVs in the model; these values are associated with models that have the focal IV (hence multiplied by logical matrix).  This matrix is inverted to make weights that can be used for weighted averaging.  Finally, these weights are multiplied by all the fit statistics
+    ((Combination_Matrix*(Combins_at_Order - Combins_at_Order_Prev))**-1)*Ensemble_of_Models
+  
+  Weighted_Order_Ensemble <- # effectively missing values (Inf) are changed to 0 to remove from summing
+    replace(Weighted_Order_Ensemble, 
+            Weighted_Order_Ensemble==Inf, 0)
+  
+  Weighted_Order_Ensemble_Anti <- # create a matrix indicating how many unique combinations are associated with each number of IVs in the model; these values are associated with models that have do not have focal IV and would thus be used to subtract out of models that do (hence the reflection across 0). This matrix is inverted to make weights that can be used for weighted averaging.  Finally, these weights are multiplied by all the fit statistics
+    ((Combination_Matrix_Anti*Combins_at_Order_Prev)**-1)*Ensemble_of_Models
+  
+  Weighted_Order_Ensemble_Anti <-# effectively missing values (Inf) are changed to 0 to remove from summing
+    replace(Weighted_Order_Ensemble_Anti, 
+            Weighted_Order_Ensemble_Anti==Inf, 0)
+  
+  for (order in 1:Total_Indep_Vars) {
     
-    Conditional_Dominance[IV_Location, numIndepVars] <- 
-      mean(sapply(Model_List[[numIndepVars]], function(Indep_Var) 
-        Identify_domCondit(IV_name, Indep_Var)), na.rm=TRUE)
+    Conditional_Dominance[, order] <- # the column associated with an order (# of IVs) in the model is replaced by ...
+      t( # ... transpose of ...
+        colSums(Weighted_Order_Ensemble[IVs_per_Model==order,]) - # ... the sum of the weighted fit stats at a with a specified number of IVs in the model for all models including the focal IV (across all rows) ...
+          colSums(Weighted_Order_Ensemble_Anti[IVs_per_Model==(order-1),]) # ... subtracting out the sum of the weighted fit stats with one less than a specified number of IVs in the model for all models that do not contain the focal IV (across all rows)
+        )
     
   }
-       
+  
+  Conditional_Dominance[,1] <- Conditional_Dominance[,1] - FitStat_Adjustment # adjust the first set of conditional dominance statistics for the constant and/or all fitstat adjustments
+  
 }
+
+else Conditional_Dominance <- NULL
 
 # Obtain complete dominance statistics ----
-
-Identify_domComplt <- function (Increment, focalIV, compIV) { 
-  
-  if ((is.element(focalIV, Increment[["names_curr"]])) & 
-      (!is.element(focalIV, Increment[["names_prev"]])) & 
-      ( (!is.element(compIV, c(Increment[["names_prev"]], 
-                               Increment[["names_curr"]]) )) & 
-        (length(Increment[["names_curr"]]) > 1) ))
-    value <- Increment
-  
-  else if ( (is.element(focalIV, Increment[["names_curr"]])) & # marked not covered in tests but clearly executes
-            (length(Increment[["names_curr"]]) == 1) )
-    value <- Increment
-  
-  else value <- NA # marked not covered in tests but clearly executes
-  
-  return(value)
-  
-}
-
-# mid
-domComplt_Comparator <- function(focal_model, comp_model, focalIV, compIV) {
-  
-  if ( setequal(focal_model[["names_prev"]], comp_model[["names_prev"]]) && 
-       (setdiff(focal_model[["names_curr"]], focal_model[["names_prev"]])==focalIV) &&
-       (setdiff(comp_model[["names_curr"]], comp_model[["names_prev"]])==compIV) )
-    value <- focal_model[["increment"]] > comp_model[["increment"]]
-    
-  else if (length(focal_model[["names_curr"]])==1) 
-    value <- focal_model[["increment"]] > comp_model[["increment"]]
-  
-  else value <- NA
-  
-  if (!is.na(value) && focal_model[["increment"]] == comp_model[["increment"]]) # if fit metrics identical - they're NA
-    value <- NA
-  
-  return(value)
-  
-}
-
-# intention find IV1's increments - find IV2's increments - return logical vector of comparisons
-Prepare_domComplt <- function(IncrementList, focalIV, compIV) {
-  
-  relevantIncs <- lapply(IncrementList, Identify_domComplt, focalIV=focalIV, compIV=compIV)
-  
-  relevantIncs2 <- lapply(IncrementList, Identify_domComplt, focalIV=compIV, compIV=focalIV)
-  
-  Null_Elements <- which(is.na(relevantIncs)) # identify NULL list elements
-  
-  if (length(Null_Elements) > 0) # if there are NULL elements...
-    relevantIncs <- relevantIncs[ -Null_Elements ] # ... remove them before returning
-  
-  Null_Elements2 <- which(is.na(relevantIncs2)) # identify NULL list elements
-  
-  if (length(Null_Elements2) > 0) # if there are NULL elements...
-    relevantIncs2 <- relevantIncs2[ -Null_Elements2 ] # ... remove them before returning
-  
-  Focal_Models_Length <- length(relevantIncs) # record number of models at current IVs
-  Comp_Models_Length <- length(relevantIncs2) # record number of models at one less IVs
-  
-  Focal_Models <- # "spread" current models at number of previous models to find combinations
-    rep(relevantIncs, each=Comp_Models_Length)
-  
-  Comp_Models <- # repeat one less IV models at number of current models to find combinations
-    rep(relevantIncs2, times=Focal_Models_Length)
-  
-  Focal_Comp_logi <- mapply(domComplt_Comparator, 
-                            focal_model=Focal_Models, comp_model=Comp_Models, 
-                            focalIV=focalIV, compIV=compIV,
-                            SIMPLIFY = TRUE)
-  
-  Null_Elements3 <- which(is.na(Focal_Comp_logi)) # identify NULL list elements
-  
-  if (length(Null_Elements3) > 0) # if there are NULL elements...
-    Focal_Comp_logi <- Focal_Comp_logi[ -Null_Elements3 ] # ... remove them before returning
-  
-  #return(sum(Focal_Comp_logi))
-  compile_compare <- ifelse(length(Focal_Comp_logi) == 0, 
-                            NA, ifelse(all(Focal_Comp_logi),
-                                       TRUE, ifelse(all(!Focal_Comp_logi), 
-                                                    FALSE, NA)))  #ensure that mixes of F & T get correctly classified
-  return(compile_compare)
-  
-}
 
 if (complete) {
   
   Complete_Dominance <- 
-    matrix(data=NA, nrow=Total_Indep_Vars, ncol=Total_Indep_Vars) # complete dominance container
+    matrix(data = NA, nrow = Total_Indep_Vars, ncol = Total_Indep_Vars) # complete dominance container; initialize with missing values
   
-  for (IV_Col in 1:(Total_Indep_Vars-1)) {
-
-    Row_loc <- IV_Col + 1
+  Complete_Combinations <- 
+    utils::combn(1:Total_Indep_Vars, 2) # produce all pairs of IVs (indicated by column numbers in logical matrix)
+  
+  for (pair in 1:ncol(Complete_Combinations)) { # looping across all pairs of IVs...
     
-    IV_Col_Name <- Indep_Vars[[IV_Col]]
+    Focal_Cols <- Complete_Combinations[, pair] # identify which columns are associated with the focal unique pair of IVs
     
-    for (IV_Row in Row_loc:Total_Indep_Vars) {
-      
-      IV_Row_Name <- Indep_Vars[[IV_Row]]
-      
-      All_Complete_Comparisons <- 
-        sapply(Model_List[-length(Model_List)], # don't use the last one - no valid comparisons
-               Prepare_domComplt, 
-               focalIV=IV_Row_Name, compIV=IV_Col_Name)
-      
-      Complete_Dominance[IV_Row, IV_Col] <- 
-        ifelse(all(All_Complete_Comparisons), TRUE,
-               ifelse(all(!All_Complete_Comparisons), FALSE, NA))
-      
-      Complete_Dominance[IV_Col, IV_Row] <- # ensure symmetry of complete dominance matrix
-        !Complete_Dominance[IV_Row, IV_Col]
-      
-    }
+    NonFocal_Cols <- setdiff(1:Total_Indep_Vars, Focal_Cols) # find the columns associated with the complement of IVs not selected in the unique pair
+    
+    Select_2IVs <- 
+      cbind(Combination_Matrix, 1:nrow(Combination_Matrix))[ # combine logical IV inclusion matrix with vector of row indicators (used to select specific rows in the fitstat vector) ...
+        rowSums( Combination_Matrix[,Focal_Cols] )==1, ] #... then take only the rows/models associated with having only one of either of the focal IVs (never both or neither IVs)
+    
+    Sorted_2IVs <- 
+      Select_2IVs[
+        do.call("order", # sort/order the logical and row indicator matrix...
+                as.data.frame(Select_2IVs[,c(NonFocal_Cols, Focal_Cols)])), ] #... based on the non included IVs - this forces non-included IVs to "pair" sequentially; that is, models with focal IV 1 are at vector location 'n' and models with focal IV 2 are at vector location 'n + 1' and all the non-focal IVs are identical between those two models (which is required for a valid complete dominance comparison)
+    
+    Compare_2IVs <-
+      cbind( # bind in a matrix as different columns...
+        Ensemble_of_Models[ # ... fit statistics ...
+          Sorted_2IVs[(1:nrow(Sorted_2IVs) %% 2)==0, ncol(Sorted_2IVs)]], # ... selected based on the row indicators (i.e., last row of the sorted matrix produced above), in all 'n' row positions (i.e., modulus of 0 with frequency 2)...
+        Ensemble_of_Models[ # ... as well as the fit statistics ...
+          Sorted_2IVs[(1:nrow(Sorted_2IVs) %% 2)==1, ncol(Sorted_2IVs)]] # ... selected based on the row indicators (again, last row of the sorted matrix produced above), in all 'n + 1' row positions (i.e., modulus of 1 with frequency 2)
+        )
+    
+    Complete_Designation <- # compare the matched matrices across columns - and make complete dominance designation
+      ifelse(all(Compare_2IVs[,1] > Compare_2IVs[,2]), FALSE,
+                 ifelse(all(Compare_2IVs[,1] < Compare_2IVs[,2]), TRUE, NA))
+    
+    Complete_Dominance[ Focal_Cols[[2]], Focal_Cols[[1]] ] <- #assign designation to one instance of pair 
+      Complete_Designation
+    
+    Complete_Dominance[ Focal_Cols[[1]], Focal_Cols[[2]] ] <- #assign designation to complementary instance of pair
+      !Complete_Designation
     
   }
   
@@ -544,8 +391,39 @@ if (reverse == TRUE) Complete_Dominance <- !Complete_Dominance # reverse all des
 
 # Obtain general dominance statistics ----
 
-General_Dominance <- 
-    apply(Conditional_Dominance, 1, mean) # average conditional dominance statistics to produce general dominance
+if (!conditional) { # if there was no conditional dominance computed, generate general dominance as below...
+  
+  Combination_Matrix_Anti <-!Combination_Matrix # complement of logical IV inclusion matrix
+  
+  IVs_per_Model <- rowSums(Combination_Matrix) # count IVs in each model using logical IV inclusion matrix
+  
+  Combins_at_Order <- 
+    sapply(IVs_per_Model, # for each IV/column, ... 
+           function(x) choose(Total_Indep_Vars, x), # ... compute # of combinations associated with each row given the total number of IVs
+           simplify = TRUE, USE.NAMES = FALSE)
+  
+  Combins_at_Order_Prev <- 
+    sapply(IVs_per_Model, # for each IV/column, ... 
+           function(x) choose(Total_Indep_Vars - 1, x),# ... compute # of combinations associated with each row given the total number of IVs (i.e., # of combinations _not_ including focal IV)
+           simplify = TRUE, USE.NAMES = FALSE)
+  
+  Indicator_Weight <- # create a matrix indicating how many unique combinations are associated with each number of IVs in the model (surrogate for what conditional dominance statistics do); these values are associated with models that have the focal IV
+    Combination_Matrix*(Combins_at_Order - Combins_at_Order_Prev)
+  
+  Indicator_Weight_Anti <- # create a matrix indicating how many unique combinations are associated with each number of IVs in the model (again, surrogate for what conditional dominance statistics do); these values are associated with models that have do not have focal IV and would thus be used to subtract out of models that do (hence the reflection across 0)
+    (Combination_Matrix_Anti*Combins_at_Order_Prev)*-1
+  
+  Weight_Matrix <- # combine combinations of focal and non-focal counts associated with what the conditional dominance statistics would do with the number of IV average associated with what the general dominance statistics do (arithmetic average of all conditional dominance statistics); these combinations are inverted to make them function as a set of weights that produce averages 
+    ((Indicator_Weight + Indicator_Weight_Anti)*Total_Indep_Vars)^-1
+  
+  General_Dominance <- # general dominance is sum of the product of the weight matrix above and all the fit statistics
+    colSums(Ensemble_of_Models*Weight_Matrix)
+  
+  General_Dominance <- General_Dominance - FitStat_Adjustment/Total_Indep_Vars # adjust the general dominance statistics for the constant and/or all fitstat adjustments in the first/order 1 stats as conditional dominance would do
+  
+}
+
+else General_Dominance <- rowMeans(Conditional_Dominance) #... otherwise average conditional dominance by IV/row to produce general dominance statistics
 
 # Obtain overall fit statistic and ranks ----
 
@@ -565,13 +443,14 @@ else IV_Labels <-
 
 names(General_Dominance) <- IV_Labels
 names(General_Dominance_Ranks) <- IV_Labels 
-dimnames(Conditional_Dominance) <- list(IV_Labels, paste0("IVs_", 1:length(Indep_Vars)))
+if (conditional) 
+  dimnames(Conditional_Dominance) <- list(IV_Labels, paste0("IVs_", 1:length(Indep_Vars)))
 if (complete) 
   dimnames(Complete_Dominance) <- list(paste0("Dmnates_", IV_Labels),  paste0("Dmnated_", IV_Labels))
 
 if (reverse == FALSE) # Standardized if fitstat increases...
-       Standardized <- General_Dominance/(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result[["value"]], 0)) # ...then use normal standardization...
-       else Standardized <- -General_Dominance/-(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result[["value"]], 0)) # ...otherwise reverse the general dominance stats to standardize
+       Standardized <- General_Dominance/(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result, 0)) # ...then use normal standardization...
+       else Standardized <- -General_Dominance/-(FitStat - ifelse(length(Cons_Result) > 0, Cons_Result, 0)) # ...otherwise reverse the general dominance stats to standardize
 
 return_list <- list(
     "General_Dominance" = General_Dominance,
@@ -580,12 +459,11 @@ return_list <- list(
     "Conditional_Dominance" = Conditional_Dominance,
     "Complete_Dominance" = Complete_Dominance,
     "Fit_Statistic_Overall" = FitStat,
-    "Fit_Statistic_All_Subsets" = 
-      All_Result[["value"]] - ifelse(is.null(Cons_Result[["value"]]), 0, Cons_Result[["value"]]),
-    "Fit_Statistic_Constant_Model" = Cons_Result[["value"]],
+    "Fit_Statistic_All_Subsets" = All_Result - ifelse(is.null(Cons_Result), 0, Cons_Result),
+    "Fit_Statistic_Constant_Model" = Cons_Result,
     "Call" = match.call(),
     "Subset_Details" = list(
-        "Full_Model" = stats::reformulate(c(Combination_List[[Total_Indep_Vars]], all, consmodel), response = Dep_Var, intercept = intercept),
+        "Full_Model" = stats::reformulate(c(Indep_Vars, all, consmodel), response = Dep_Var, intercept = intercept),
         "Formula" = attr(stats::terms(formula_overall), "term.labels"), 
         "All" = all,
         "Sets" = sets,
@@ -603,58 +481,192 @@ return_list <- list(
 #'
 #' Reports formatted results from \code{domin} class object.
 #' @param x an object of class "domin".
-#' @param ... further arguments passed to or from other methods.
-#' @return None. This method is called only for side-effect of printing to the console.
+#' @param ... further arguments passed to or from other methods. Not used currently.
+#' @return The "domin" object with altered column and row names for conditional and complete dominance results as displayed in the console.
 #' @details The print method for class \code{domin} objects reports out the following results:
 #' \itemize{
-#'  \item{Fit statistic for the full model as well as the fit statistic for the
-#'  all subsets model if any entries in \code{all} as well as \code{consmodel}}
-#'  \item{Matrix describing general dominance statistics, standardized 
-#'  general dominance statistics, and the ranking of the general dominance 
-#'  statistics}
-#'  \item{Matrix describing the conditional dominance statistics.}
-#'  \item{If \code{conditional} is \code{TRUE}, matrix describing the complete 
-#'  dominance designations}
+#'  \item{Fit statistic for the full model.  The fit statistic for the all subsets model is reported here if there are any entries in \code{all}.  The fit statistic for the constant model is reported here if there are any entries in \code{consmodel}.}
+#'  \item{Matrix describing general dominance statistics, standardized general dominance statistics, and the ranking of the general dominance statistics}
+#'  \item{If \code{conditional} is \code{TRUE}, matrix describing the conditional dominance designations}
+#'  \item{If \code{complete} is \code{TRUE}, matrix describing the complete dominance designations}
+#'  \item{If following \code{summary.domin}, matrix describing the strongest dominance designations between all independent variables}
 #'  \item{If there are entries in \code{sets} and/or \code{all} the terms included in each set as well as the terms in all subsets are reported}}
-#'  The \code{domin} print method alters dimension names for readability and they do not display as stored in the \code{domin} object.
+#'  The \code{domin} print method alters dimension names for readability and they do not display as stored in the original \code{domin} object.
 #' @export
 
 print.domin <- function(x, ...) {
-
-cat("Overall Fit Statistic:     ", x[["Fit_Statistic_Overall"]], "\n")
-if (length(x[["Fit_Statistic_All_Subsets"]]) > 0) cat("All Subsets Fit Statistic: ", x[["Fit_Statistic_All_Subsets"]],"\n")
-  if (length(x[["Fit_Statistic_Constant_Model"]]) > 0) cat("Constant Model Fit Statistic: ", x[["Fit_Statistic_Constant_Model"]],"\n")
-cat("\n")
-cat("General Dominance Statistics:\n")
-Display_Std <- 
+  
+  cat("Overall Fit Statistic:     ", x[["Fit_Statistic_Overall"]], "\n")
+  
+  if (length(x[["Fit_Statistic_All_Subsets"]]) > 0) 
+    cat("All Subsets Fit Statistic: ", x[["Fit_Statistic_All_Subsets"]], "\n")
+  
+  if (length(x[["Fit_Statistic_Constant_Model"]]) > 0) 
+    cat("Constant Model Fit Statistic: ", x[["Fit_Statistic_Constant_Model"]], "\n")
+  
+  cat("\n")
+  
+  cat("General Dominance Statistics:\n")
+  
+  Display_Std <- 
     t(rbind(x[["General_Dominance"]], x[["Standardized"]], x[["Ranks"]]))
-dimnames(Display_Std) <- 
+  
+  dimnames(Display_Std) <- 
     list(names(x[["Ranks"]]), c("General Dominance", "Standardized", "Ranks"))
-print(Display_Std)
-cat("\n")
-cat("Conditional Dominance Statistics:\n")
-colnames(x[["Conditional_Dominance"]]) <- 
-  paste("IVs:", 1:ncol(x[["Conditional_Dominance"]]))
-print(x[["Conditional_Dominance"]])
-cat("\n")
-if (length(x[["Complete_Dominance"]]>0)) {
+  
+  print(Display_Std)
+  
+  cat("\n")
+  
+  if (length(x[["Conditional_Dominance"]] > 0)) {
+    
+    cat("Conditional Dominance Statistics:\n")
+    
+    colnames(x[["Conditional_Dominance"]]) <- 
+      paste("IVs:", 1:ncol(x[["Conditional_Dominance"]]))
+    
+    print(x[["Conditional_Dominance"]])
+    
+    cat("\n")
+    
+  }
+  
+  if (length(x[["Complete_Dominance"]] > 0)) {
+    
     cat("Complete Dominance Designations:\n")
+    
     colnames(x[["Complete_Dominance"]]) <- 
       gsub("^Dmnated_", "Dmnated?", colnames(x[["Complete_Dominance"]]))
+    
     rownames(x[["Complete_Dominance"]]) <- 
       gsub("^Dmnates_", "Dmnates?", rownames(x[["Complete_Dominance"]]))
+    
     print(x[["Complete_Dominance"]])
+    
     cat("\n")
-}
-if (length(x[["Subset_Details"]][["Sets"]])>0) {
+    
+  }
+  
+  if (length(x[["Strongest_Dominance"]] > 0)) {
+    
+    cat("Strongest Dominance Designations:")
+    
+    print(x[["Strongest_Dominance"]])
+    
+    cat("\n")
+    
+  }
+  
+  if (length(x[["Subset_Details"]][["Sets"]]) > 0) {
+    
     cat("Components of sets:\n")
+    
     for (set in 1:length(x[["Subset_Details"]][["Sets"]])) {
-        cat(paste0("set", set),":", x[["Subset_Details"]][["Sets"]][[set]], "\n")
+      
+      cat(paste0("set", set),":", x[["Subset_Details"]][["Sets"]][[set]], "\n")
+      
     }
+    
     cat("\n")
-}
-if (length(x[["Subset_Details"]][["All"]])>0) {
+    
+  }
+  
+  if (length(x[["Subset_Details"]][["All"]]) > 0) {
+    
     cat("All subsets variables:", x[["Subset_Details"]][["All"]])
-}
+    
+  }
+  
+  invisible(x)
+  
 }
 
+
+#' Summary method for \code{domin}
+#'
+#' Reports dominance designation results from the \code{domin} class object.
+#' @param object an object of class "domin".
+#' @param ... further arguments passed to or from other methods. Not used currently.
+#' @return The originally submitted "domin" object with an additional \code{Strongest_Dominance} element added.
+#' \describe{
+#'  \item{\code{Strongest_Dominance}}{Matrix comparing the independent variable in the first row to the independent variable in the third row.  The second row denotes the strongest designation between the two independent variables.}
+#' }
+#' @details The summary method for class \code{domin} is used for obtaining the strongest dominance designations (i.e., general, conditional, or complete) among the independent variables.
+#' @export
+
+summary.domin <- function(object, ...) {
+  
+  if (length(object[["Strongest_Dominance"]]) == 0) {
+    
+    pairs <- utils::combn(names(object$General_Dominance), 2)
+    
+    pairs <- rbind(pairs[1,], rep("", times = ncol(pairs)), pairs[2,])
+    
+    location <- 0
+    
+    for (IV1 in 1:(length(object$General_Dominance) - 1)) {
+      
+      for (IV2 in (IV1+1):length(object$General_Dominance)) {
+        
+        location <- location + 1
+        
+        if (length(object[["Complete_Dominance"]] > 0)) {
+          
+          if (!is.na(object$Complete_Dominance[IV1, IV2])) {
+            pairs[2, location] <- 
+              ifelse(object$Complete_Dominance[IV1, IV2], 
+                     "completely dominates",
+                     "is completely dominated by")
+            
+            next
+            
+          }
+          
+        }
+        
+        if (length(object[["Conditional_Dominance"]] > 0)) {
+          
+          if (all(object$Conditional_Dominance[IV1,] > object$Conditional_Dominance[IV2,])) { 
+            
+            pairs[2, location] <- "conditionally dominates"
+            
+            next
+            
+          }
+          
+          else if (all(object$Conditional_Dominance[IV1,] < object$Conditional_Dominance[IV2,])) {
+            
+            pairs[2, location] <- "is conditionally dominated by"
+            
+            next
+            
+          }
+          
+        }
+        
+        pairs[2, location] <- 
+          ifelse(object$General_Dominance[[IV1]] > object$General_Dominance[[IV2]], 
+                 "generally dominates", 
+                 ifelse(object$General_Dominance[[IV1]] < object$General_Dominance[[IV2]],
+                        "is generally dominated by", 
+                        "has no dominance designation with"))
+        
+      }
+      
+    }
+    
+    rownames(pairs) <- rep("", times = 3)
+    
+    colnames(pairs) <- rep("", times = ncol(pairs))
+    
+    res <- append(object, list(Strongest_Dominance = pairs))
+    
+    class(res) <- c("domin", "list")
+    
+    return(res)
+    
+  }
+  
+  else return(object)
+  
+}
