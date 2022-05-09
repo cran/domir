@@ -1,7 +1,7 @@
 Package: domir
 Title: Tools to Support Relative Importance Analysis
-Version: 0.3.0
-Date: 2022-2-19
+Version: 0.3.2
+Date: 2022-5-7
 Authors@R: 
     person(given = "Joseph",
            family = "Luchman",
@@ -20,8 +20,8 @@ Description: Provides tools that support relative importance analysis focusing
     desired by the user-especially those where the user wants to use custom 
     importance/fit statistic or modeling function.
 Imports: stats, utils
-Suggests: dominanceanalysis, testthat (>= 3.0.0), relaimpo, yhat,
-        knitr, rmarkdown
+Suggests: testthat (>= 3.0.0), relaimpo, yhat, knitr, rmarkdown,
+        tidyverse
 License: GPL (>= 3)
 URL: https://github.com/jluchman/domir
 Encoding: UTF-8
@@ -30,8 +30,8 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 Language: en-US
 NeedsCompilation: no
-Packaged: 2022-02-19 17:12:56 UTC; josephluchman
+Packaged: 2022-05-07 12:42:53 UTC; josephluchman
 Author: Joseph Luchman [aut, cre] (<https://orcid.org/0000-0002-8886-9717>)
 Maintainer: Joseph Luchman <jluchman@gmail.com>
 Repository: CRAN
-Date/Publication: 2022-02-21 08:50:14 UTC
+Date/Publication: 2022-05-09 08:20:02 UTC

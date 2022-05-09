@@ -6,6 +6,7 @@ knitr::opts_chunk$set(
 
 ## ----setup_lm-----------------------------------------------------------------
 library(datasets)
+library(tidyverse)
 
 lm_cars <- 
   lm(mpg ~ am + cyl + carb, data = mtcars)
@@ -65,7 +66,7 @@ lm_da$Complete_Dominance
 first_order <- 
   cbind(DA_results[DA_results$formula == "mpg ~ am",], data.frame(`formula subtrahend` = "mpg ~ 1", `R^2 subtrahend` = 0, difference = DA_results[DA_results$formula == "mpg ~ am", "R^2"], check.names = FALSE))
 
-names(first_order)[1:2] <- c("formula minutend", "R^2 minutend")
+names(first_order)[1:2] <- c("formula minuend", "R^2 minuend")
 
 second_order <- 
   cbind(DA_results[grepl("am", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),], 
@@ -73,7 +74,7 @@ second_order <-
         data.frame(difference = 
                      DA_results[grepl("am", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"] - DA_results[!grepl("am", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==2),"R^2"]))
 
-names(second_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(second_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 third_order <- 
   cbind(DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),],
@@ -81,7 +82,7 @@ third_order <-
         data.frame(difference = 
                      DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),"R^2"] - DA_results[!grepl("am", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"]))
 
-names(third_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(third_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 knitr::kable(first_order, row.names = FALSE, caption = "Conditional Dominance Computations: `am` with One IV/Alone", digits = 3)
 
@@ -93,7 +94,7 @@ knitr::kable(third_order, row.names = FALSE, caption = "Conditional Dominance Co
 first_order <- 
   cbind(DA_results[DA_results$formula == "mpg ~ cyl",], data.frame(`formula subtrahend` = "mpg ~ 1", `R^2 subtrahend` = 0, difference = DA_results[DA_results$formula == "mpg ~ cyl", "R^2"], check.names = FALSE))
 
-names(first_order)[1:2] <- c("formula minutend", "R^2 minutend")
+names(first_order)[1:2] <- c("formula minuend", "R^2 minuend")
 
 second_order <- 
   cbind(DA_results[grepl("cyl", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),], 
@@ -101,7 +102,7 @@ second_order <-
         data.frame(difference = 
                      DA_results[grepl("cyl", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"] - DA_results[!grepl("cyl", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==2),"R^2"]))
 
-names(second_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(second_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 third_order <- 
   cbind(DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),],
@@ -109,7 +110,7 @@ third_order <-
         data.frame(difference = 
                      DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),"R^2"] - DA_results[!grepl("cyl", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"]))
 
-names(third_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(third_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 knitr::kable(first_order, row.names = FALSE, caption = "Conditional Dominance Computations: `cyl` with One IV/Alone", digits = 3)
 
@@ -121,7 +122,7 @@ knitr::kable(third_order, row.names = FALSE, caption = "Conditional Dominance Co
 first_order <- 
   cbind(DA_results[DA_results$formula == "mpg ~ carb",], data.frame(`formula subtrahend` = "mpg ~ 1", `R^2 subtrahend` = 0, difference = DA_results[DA_results$formula == "mpg ~ carb", "R^2"], check.names = FALSE))
 
-names(first_order)[1:2] <- c("formula minutend", "R^2 minutend")
+names(first_order)[1:2] <- c("formula minuend", "R^2 minuend")
 
 second_order <- 
   cbind(DA_results[grepl("carb", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),], 
@@ -129,7 +130,7 @@ second_order <-
         data.frame(difference = 
                      DA_results[grepl("carb", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"] - DA_results[!grepl("carb", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==2),"R^2"]))
 
-names(second_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(second_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 third_order <- 
   cbind(DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),],
@@ -137,7 +138,7 @@ third_order <-
         data.frame(difference = 
                      DA_results[sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==4),"R^2"] - DA_results[!grepl("carb", DA_results$formula) & sapply(DA_results$formula, function(x) length(all.vars(as.formula(x)))==3),"R^2"]))
 
-names(third_order)[1:4] <- c("formula minutend", "R^2 minutend", "formula subtrahend", "R^2 subtrahend")
+names(third_order)[1:4] <- c("formula minuend", "R^2 minuend", "formula subtrahend", "R^2 subtrahend")
 
 knitr::kable(first_order, row.names = FALSE, caption = "Conditional Dominance Computations: `carb` with One IV/Alone", digits = 3)
 
@@ -157,6 +158,9 @@ knitr::kable(data.frame(t(lm_da$Conditional_Dominance[c("am", "carb"),]), compar
 ## ----cdl_cyl_carb, echo=FALSE-------------------------------------------------
 knitr::kable(data.frame(t(lm_da$Conditional_Dominance[c("cyl", "carb"),]), comparison= lm_da$Conditional_Dominance["cyl",] > lm_da$Conditional_Dominance["carb",]), caption = "Conditional Dominance Designation: `cyl` Compared to `carb`", digits = 3)
 
+## ----condit_gph, echo=FALSE---------------------------------------------------
+lm_da |> pluck("Conditional_Dominance") |> as_tibble(rownames = "pred") |> pivot_longer(names_to = "ivs", values_to = "stat", cols = starts_with("IV")) |> mutate(ivs = fct_relabel(ivs, ~ str_replace(., "_", ": "))) |> ggplot(aes(x = ivs, y = stat, group = pred, color= pred)) + geom_line() + ylab("Conditional Dominance Statistic Value") + xlab("Number of Independent Variables") + labs(color = "Independent\nVariable") + theme_linedraw() + scale_color_viridis_d() 
+
 ## ----gen_am, echo=FALSE-------------------------------------------------------
 knitr::kable(data.frame(t(as.data.frame(lm_da$Conditional_Dominance["am",])), `general dominance` = lm_da$General_Dominance[["am"]], check.names = FALSE), row.names = FALSE, caption = "General Dominance Computations: `am`", digits = 3)
 
@@ -169,7 +173,7 @@ knitr::kable(data.frame(t(as.data.frame(lm_da$Conditional_Dominance["carb",])), 
 ## ----lm_general---------------------------------------------------------------
 lm_da$General_Dominance
 
-## ----gen_rank-----------------------------------------------------------------
+## ----gen_rank, echo = FALSE---------------------------------------------------
 knitr::kable(data.frame(IV = names(lm_da$General_Dominance), `general dominance` = lm_da$General_Dominance, ranks = lm_da$Ranks, check.names = FALSE), row.names = FALSE, caption = "General Dominance Designations", digits = 3)
 
 ## ----lm_strongest-------------------------------------------------------------

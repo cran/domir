@@ -12,11 +12,23 @@
 
 <meta name="author" content="Joseph Luchman" />
 
-<meta name="date" content="2022-02-19" />
+<meta name="date" content="2022-05-07" />
 
 <title>Conceptual Introduction to Dominance Analysis</title>
 
-<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -26,6 +38,7 @@
   div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
   ul.task-list{list-style: none;}
     </style>
+
 
 
 <style type="text/css">
@@ -127,7 +140,187 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
 
 
 
@@ -139,65 +332,126 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<h1 class="title toc-ignore">Conceptual Introduction to Dominance Analysis</h1>
-<h3 class="subtitle">Examples and Implementation with <code>{domir}</code>’s <code>domin</code></h3>
+<h1 class="title toc-ignore">Conceptual Introduction to Dominance
+Analysis</h1>
+<h3 class="subtitle">Examples and Implementation with
+<code>{domir}</code>’s <code>domin</code></h3>
 <h4 class="author">Joseph Luchman</h4>
-<h4 class="date">2022-02-19</h4>
+<h4 class="date">2022-05-07</h4>
 
 
 
-<p>The purpose of this vignette is to briefly discuss the conceptual underpinnings of the relative importance method implemented in <code>{domir}</code> and provide several extensive examples that illustrate these concepts as applied to data.</p>
-<p>This vignette is intended to serve as a refresher for users familiar with these concepts as well as an brief introduction to them for those who are not.</p>
-<p>By the end of this vignette, the reader should have a sense for what the key relative importance method is attempting to do as well as an understanding of how it is accomplished as applied to data.</p>
+<p>The purpose of this vignette is to briefly discuss the conceptual
+underpinnings of the relative importance method implemented in
+<code>{domir}</code> and provide several extensive examples that
+illustrate these concepts as applied to data.</p>
+<p>This vignette is intended to serve as a refresher for users familiar
+with these concepts as well as an brief introduction to them for those
+who are not.</p>
+<p>By the end of this vignette, the reader should have a sense for what
+the key relative importance method is attempting to do as well as an
+understanding of how it is accomplished as applied to data.</p>
 <div id="conceptual-introduction" class="section level1">
 <h1>Conceptual Introduction</h1>
-<p>The relative importance method implemented in <code>{domir}</code> produces results that are relatively easy to interpret but is itself a complex method in terms of implementation.</p>
-<p>The discussion below outlines what the conceptual origins of the method, what the relative importance method does, and some details about how the DA method is implemented in <code>{domir}</code>.</p>
+<p>The relative importance method implemented in <code>{domir}</code>
+produces results that are relatively easy to interpret but is itself a
+complex method in terms of implementation.</p>
+<p>The discussion below outlines the conceptual origins of the method,
+what the relative importance method does, and some details about how the
+DA method is implemented in <code>{domir}</code>.</p>
 <div id="dominance-analysis" class="section level2">
 <h2>Dominance Analysis</h2>
-<p>The focus of the <code>{domir}</code> package is, currently, on dominance analysis (DA). DA can be thought of as an extension of Shapley value decomposition from Cooperative Game Theory (see Grömping, 2007 for a discussion) which seeks to find solutions of how to subdivide payoffs to players in a game based on their relative contribution to the payoff.</p>
-<p>This methodology can be applied to predictive modeling in a conceptually straightforward way. Predictive models are, in a sense, a game in which independent variables (IVs)/predictors/features cooperate to produce a payoff in the form of predicting the dependent variable (DV)/outcome/response. The component of the decomposition/the proportion of the payoff ascribed to each IV can then be interpreted as the IVs importance in the context of the model as that is the contribution it makes to predicting the DV.</p>
-<p>In application, DA determines the relative importance of IVs in a predictive model based on each IV’s contribution to an overall model fit statistic—a value that describes the entire model’s predictions on a dataset at once. DA’s goal extends beyond just the decomposition of the focal model fit statistic. In fact, DA produces three different results that it uses to compare the contribution each IV makes in the predictive model against the contributions attributed to each other IV. These three results, and their combined use to compare IVs, is the reason DA is an <em>extension of</em> Shapley value decomposition. The three different results are discussed in greater detail in the context of an example discussed below after a brief introduction to the <code>domin</code> function.</p>
+<p>The focus of the <code>{domir}</code> package is, currently, on
+dominance analysis (DA). DA can be thought of as an extension of Shapley
+value decomposition from Cooperative Game Theory (see Grömping, 2007 for
+a discussion) which seeks to find a solutions to the problem of how to
+subdivide payoffs to players in a cooperative game based on their
+relative contribution to the payoff.</p>
+<p>This methodology can be applied to predictive modeling in a
+conceptually straightforward way. Predictive models are, in a sense, a
+game in which independent variables (IVs)/predictors/features cooperate
+to produce a payoff in the form of predicting the dependent variable
+(DV)/outcome/response. The component of the decomposition/the proportion
+of the payoff ascribed to each IV can then be interpreted as the IVs
+importance in the context of the model as that is the contribution it
+makes to predicting the DV.</p>
+<p>In application, DA determines the relative importance of IVs in a
+predictive model based on each IV’s contribution to an overall model fit
+statistic—a value that describes the entire model’s predictions on a
+dataset at once. DA’s goal extends beyond just the decomposition of the
+focal model fit statistic. In fact, DA produces three different results
+that it uses to compare the contribution each IV makes in the predictive
+model against the contributions attributed to each other IV. The use of
+these three results to compare IVs is the reason DA is an <em>extension
+of</em> Shapley value decomposition. The three different results are
+discussed in greater detail in the context of an example discussed below
+after a brief introduction to the <code>domin</code> function.</p>
 </div>
-<div id="da-implemtation-with-domirdomin" class="section level2">
-<h2>DA Implemtation with <code>domir::domin</code></h2>
-<p>The <code>domin</code> function of the <code>{domir}</code> package is an API for applying DA to predictive modeling functions in R. The sections below will use this function to illustrate how DA is implemented and discuss conceptual details of each computation.</p>
-<p>Details on how to work with <code>domin</code> in terms of programming and how the API functions are reported on in the <em>domir details</em> vignette.</p>
+<div id="da-implementation-with-domirdomin" class="section level2">
+<h2>DA Implementation with <code>domir::domin</code></h2>
+<p>The <code>domin</code> function of the <code>{domir}</code> package
+is an API for applying DA to predictive modeling functions in R. The
+sections below will use this function to illustrate how DA is
+implemented and discuss conceptual details of each computation.</p>
+<p>Details on how to work with <code>domin</code> in terms of
+programming and how the API functions will reported on in the <em>domir
+details</em> vignette (under development).</p>
 </div>
 </div>
 <div id="concepts-in-application" class="section level1">
 <h1>Concepts in Application</h1>
-<p>The purpose of the <code>{domir}</code> package is to apply DA to predictive models. This section builds on the last by providing an example predictive model with which to illustrate the computation and interpretation of the dominance results produced by DA.</p>
-<p>DA was developed originally using linear regression (<code>lm</code>) with the explained variance <span class="math inline">\(R^2\)</span> metric as a fit statistic (Budescu, 1993). The examples below use this model and fit statistic as both are widely used and understood in statistics and data science.</p>
-<p>Consider this model using the <em>mtcars</em> data in the <code>{datasets}</code> package.</p>
+<p>The purpose of the <code>{domir}</code> package is to apply DA to
+predictive models. This section builds on the last by providing an
+example predictive model with which to illustrate the computation and
+interpretation of the dominance results produced by DA.</p>
+<p>DA was developed originally using linear regression (<code>lm</code>)
+with the explained variance <span class="math inline">\(R^2\)</span>
+metric as a fit statistic (Budescu, 1993). The examples below use this
+model and fit statistic as both are widely used and understood in
+statistics and data science.</p>
+<p>Consider this model using the <em>mtcars</em> data in the
+<code>{datasets}</code> package.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(datasets)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ ggplot2 3.3.6     ✔ purrr   0.3.4</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ tibble  3.1.7     ✔ dplyr   1.0.9</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ tidyr   1.2.0     ✔ stringr 1.4.0</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ readr   2.1.2     ✔ forcats 0.5.1</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✖ dplyr::filter() masks stats::filter()</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✖ dplyr::lag()    masks stats::lag()</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
-<p>The results show that all three IVs are statistically significant at the traditional level (i.e., <span class="math inline">\(p &lt; .05\)</span>) and that, in total, the predictors—<em>am, cyl</em>, and <em>carb</em>—explain ~80% of the variance in <em>mpg</em>.</p>
-<p>I intend to conduct a DA on this model using <code>domir::domin</code> and implement the DA as follows:</p>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
+<p>The results show that all three IVs are statistically significant at
+the traditional level (i.e., <span class="math inline">\(p &lt;
+.05\)</span>) and that, in total, the predictors—<em>am, cyl</em>, and
+<em>carb</em>—explain ~80% of the variance in <em>mpg</em>.</p>
+<p>I intend to conduct a DA on this model using
+<code>domir::domin</code> and implement the DA as follows:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(domir)</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, </span>
@@ -223,7 +477,8 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?am           NA       FALSE         TRUE</span></span>
 <span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?cyl        TRUE          NA         TRUE</span></span>
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?carb      FALSE       FALSE           NA</span></span></code></pre></div>
-<p>The <code>domin</code> function above prints out results in four sections:</p>
+<p>The <code>domin</code> function above prints out results in four
+sections:</p>
 <ol style="list-style-type: decimal">
 <li>fit statistic results</li>
 <li>general dominance statistics</li>
@@ -234,9 +489,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="fit-statistic-results" class="section level2">
 <h2>Fit Statistic Results</h2>
 <pre><code>#&gt; Overall Fit Statistic:      0.8113023 </code></pre>
-<p>The first result <code>domin</code> prints is related to the overall fit statistic value for the model. In game theory terms, this value is the total payoff all players/IVs produced in the cooperative game/model. Recall that the value reported was</p>
-<p>The value produced serves as the fit statistic “to be decomposed” by the DA and is limiting value for how much each IV will be able to explain. The DA will ascribe the three IVs in this model separate components of this ~<span class="math inline">\(.8113\)</span> value related to their contributions to predicting <em>mpg</em>.</p>
-<p>Other fit statistic value adjustments are reported in this section as well in particular those associated with the all subsets and constant model adjustments (discussed further below) when used in the DA.</p>
+<p>The first result <code>domin</code> prints is related to the overall
+fit statistic value for the model. In game theory terms, this value is
+the total payoff all players/IVs produced in the cooperative
+game/model.</p>
+<p>The value produced serves as the fit statistic “to be decomposed” by
+the DA and is limiting value for how much each IV will be able to
+explain. The DA will ascribe the three IVs in this model separate
+components of this ~<span class="math inline">\(.8113\)</span> value
+related to their contributions to predicting <em>mpg</em>.</p>
+<p>Other fit statistic value adjustments are reported in this section as
+well in particular those associated with the all subsets and constant
+model adjustments (<em>to be discussed further below; sections under
+development</em>) when used in the DA.</p>
 </div>
 <div id="general-dominance-statistics" class="section level2">
 <h2>General Dominance Statistics</h2>
@@ -245,15 +510,45 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 #&gt; am           0.2156848    0.2658501     2
 #&gt; cyl          0.4173094    0.5143698     1
 #&gt; carb         0.1783081    0.2197801     3</code></pre>
-<p>The second result printed reports the <em>general dominance statistics</em> related to how the overall fit statistic’s value is divided up among the IVs. These also represent the Shapley value decompositions of the fit statistic showing how each player/IV is ascribed a component of the payoff/fit statistic from the game/model.</p>
-<p>The <em>General Dominance</em> column of statistics can be interpreted in terms of the fit metric it decomposed. For example, <em>am</em> has a value of ~<span class="math inline">\(0.2157\)</span> which means <em>am</em> is associated with an <span class="math inline">\(R^2\)</span> of about twenty-two percentage points of <em>mpg</em>’s variance given the predictive model and other IVs.</p>
-<p>The <em>Standardized</em> column of statistics expresses the general dominance statistic value as a percentage of the overall fit statistic value and thus sum to 100%. <em>am</em>’s contributions to the <span class="math inline">\(R^2\)</span>’s total value is ~27% (i.e., <span class="math inline">\(\frac{.2157}{.8113} = .2659\)</span>).</p>
-<p>The final <em>Ranks</em> column is most relevant to the focal purpose of determining the relative importance of the IVs in this model and provides a rank ordering of the IVs based on the general dominance statistics. It is here that DA moves beyond Shapley value decomposition in that DA, and this rank ordering based on general dominance statistics, allows for applying labels to the relationships between IVs in terms of their importance.</p>
-<p><em>am</em> is ranked second because it has a smaller general dominance statistic than the first ranked <em>cyl</em>. As such, <em>am</em> “is generally dominated by” <em>cyl</em>. By contrast, <em>am</em> is ranked higher than third ranked <em>carb</em> and thus <em>am</em> “generally dominates” <em>carb</em>. These labels are known as <em>general dominance designations</em>.</p>
+<p>The second result printed reports the <em>general dominance
+statistics</em> related to how the overall fit statistic’s value is
+divided up among the IVs. These also represent the Shapley value
+decompositions of the fit statistic showing how each player/IV is
+ascribed a component of the payoff/fit statistic from the
+game/model.</p>
+<p>The <em>General Dominance</em> column of statistics can be
+interpreted in terms of the fit metric it decomposed. For example,
+<em>am</em> has a value of ~<span class="math inline">\(0.2157\)</span>
+which means <em>am</em> is associated with an <span class="math inline">\(R^2\)</span> of about twenty-two percentage points
+of <em>mpg</em>’s variance given the predictive model and other IVs.</p>
+<p>The <em>Standardized</em> column of statistics expresses the general
+dominance statistic value as a percentage of the overall fit statistic
+value and thus sums to 100%. <em>am</em>’s contributions to the <span class="math inline">\(R^2\)</span>’s total value is ~27% (i.e., <span class="math inline">\(\frac{.2157}{.8113} = .2659\)</span>).</p>
+<p>The final <em>Ranks</em> column is most relevant to the focal purpose
+of determining the relative importance of the IVs in this model as it
+provides a rank ordering of the IVs based on their general dominance
+statistics. It is here that DA moves beyond Shapley value decomposition
+in that DA, and this rank ordering based on general dominance
+statistics, allows for applying labels to the relationships between IVs
+in terms of their importance.</p>
+<p><em>am</em> is ranked second because it has a smaller general
+dominance statistic than the first ranked <em>cyl</em>. As such,
+<em>am</em> “is generally dominated by” <em>cyl</em>. By contrast,
+<em>am</em> is ranked higher than third ranked <em>carb</em> and thus
+<em>am</em> “generally dominates” <em>carb</em>. These labels are known
+as <em>general dominance designations</em>.</p>
 <div id="points-of-note-general-dominance" class="section level3">
 <h3>Points of Note: General Dominance</h3>
-<p>The general dominance statistics always sum to the value of the overall fit statistic and, because they represent parts of a whole, are widely considered the easiest of the dominance statistics to interpret (i.e., as compared to conditional and complete dominance below).</p>
-<p>The general dominance statistics, however simple to interpret, are the least stringent of the dominance statistics/designations (reasons why are discussed later). Thus, the requirements to assign the “generally dominates” label to a relationship between two IVs are the easiest to fulfill.</p>
+<p>The general dominance statistics always sum to the value of the
+overall fit statistic and, because they represent parts of a whole, are
+widely considered the easiest of the dominance statistics to interpret
+(i.e., as compared to conditional and complete dominance discussed
+next).</p>
+<p>The general dominance statistics, however simple to interpret, are
+the least stringent of the dominance statistics/designations (the
+reasons why are discussed later). Thus, the requirements to assign the
+“generally dominates” label to a relationship between two IVs are the
+easiest to fulfill.</p>
 </div>
 </div>
 <div id="conditional-dominance-statistics" class="section level2">
@@ -263,13 +558,55 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 #&gt; am   0.3597989 0.2164938 0.07076149
 #&gt; cyl  0.7261800 0.4181185 0.10762967
 #&gt; carb 0.3035184 0.1791172 0.05228872</code></pre>
-<p>The third section reported on by <code>domin</code> prints the <em>conditional dominance statistics</em> associated with each IV. Each IV has a separate conditional statistic related to the number of IVs that are in a sub-model; why this matrix is useful delves into the computation of these statistics which is discussed later. For the time being it suffices to note that, conceptually, these values can be thought of as Shapley values for a specific number of players in the game. Thus, the <em>IVs: 1</em> column reports on the value of the fit statistic/payoff when the IV is “playing alone” (i.e., by itself in the model with no other IVs). Similarly, the <em>IVs: 2</em> column reports on a general value of the fit statistic/payoff when the IV is “playing with one other” (i.e., with another IV irrespective of which) and so on until the column with all IVs in the model (here <em>IVs: 3</em>).</p>
-<p>The primary utility of the conditional dominance matrix is that it can be used to designate importance in a way that is more stringent/harder to achieve than the general dominance statistics. Unfortunately, this matrix does not have a ranking like the general dominance statistics and, indeed, it is not necessarily obvious as to how one might use this matrix for determining importance. The way this matrix is used is ‘row-wise’, comparing the results of an entire row/IV against those of another row/IV. If the value of each entry for a row/IV is greater than the value of another row/IV at the same position (i.e., comparing models with the same number of IVs) than an IV is said to “conditionally dominate” another IV. The matrix above shows that <em>am</em> “is conditionally dominated by” <em>cyl</em> as its conditional dominance statistics are smaller than <em>cyl</em>’s at positions 1, 2, and 3. Conversely, <em>am</em> “conditionally dominates” <em>carb</em> as its conditional dominance statistics are greater than <em>carb</em>’s at positions 1, 2, and 3.</p>
+<p>The third section reported on by <code>domin</code> prints the
+<em>conditional dominance statistics</em> associated with each IV. Each
+IV has a separate conditional dominance statistic related to the number
+of IVs that are in a sub-model; why this matrix is useful delves into
+the computation of these statistics which is discussed later. For the
+time being it suffices to note that, conceptually, these values can be
+thought of as Shapley values for a specific number of players in the
+game. Thus, the <em>IVs: 1</em> column reports on the value of the fit
+statistic/payoff when the IV is “playing alone” (i.e., by itself in the
+model with no other IVs). Similarly, the <em>IVs: 2</em> column reports
+on the average value of the fit statistic/payoff when the IV is “playing
+with one other” (i.e., with another IV irrespective of which) and so on
+until the column with all IVs in the model (here <em>IVs: 3</em>).</p>
+<p>The primary utility of the conditional dominance matrix is that it
+can be used to designate importance in a way that is more
+stringent/harder to achieve than the general dominance statistics.
+Unfortunately, this matrix does not have a ranking like the general
+dominance statistics and it may not be obvious as to how one might use
+this matrix for determining importance.</p>
+<p>To determine importance, the conditional dominance matrix is used is
+‘row-wise’, comparing the results of an entire row/IV against those of
+another row/IV. If the value of each entry for a row/IV is greater than
+the value of another row/IV at the same position (i.e., comparing models
+with the same number of IVs) than an IV is said to “conditionally
+dominate” the other IV. The matrix above shows that <em>am</em> “is
+conditionally dominated by” <em>cyl</em> as its conditional dominance
+statistics are smaller than <em>cyl</em>’s at positions 1, 2, and 3.
+Conversely, <em>am</em> “conditionally dominates” <em>carb</em> as its
+conditional dominance statistics are greater than <em>carb</em>’s at
+positions 1, 2, and 3.</p>
 <div id="points-of-note-conditional-dominance" class="section level3">
 <h3>Points of Note: Conditional Dominance</h3>
-<p>Conditional dominance statistics provide more information about each IV than general dominance statistics as they reveal the effect that IV redundancy has on prediction for each IV. To put this a little differently, conditional dominance statistics show more clearly the utility a specific player/IV adds to the payoff/fit metric. As the game/model gets more players/IVs the contribution each can make becomes more limited which is reflected in the trajectory of conditional dominance statistics. The additional information provided, however potentially useful, can be complex to interpret—a problem that grows in magnitude as more IVs are added to the model.</p>
-<p>The increase in complexity with conditional dominance over that of general dominance also results in a more stringent set of comparisons. Because the label “conditionally dominates” is only ascribed to a relationship that shows more contribution to the fit metric at all positions of the conditional dominance matrix, it is a more difficult criterion to achieve and is therefore a stronger designation.</p>
-<p>Note that conditional dominance implies general dominance–but the reverse is not true. An IV can generally, but not conditionally, dominate another IV.</p>
+<p>Conditional dominance statistics provide more information about each
+IV than general dominance statistics as they reveal the effect that IV
+redundancy has on prediction for each IV. To put this a little
+differently, conditional dominance statistics show more clearly the
+utility a specific player/IV adds to the payoff/fit metric. As the
+game/model gets more players/IVs, the contribution any one IV can make
+becomes more limited. This limiting effect with more IVs is reflected in
+the trajectory of conditional dominance statistics.</p>
+<p>The increase in complexity with conditional dominance over that of
+general dominance also results in a more stringent set of comparisons.
+Because the label “conditionally dominates” is only ascribed to a
+relationship that shows more contribution to the fit metric at all
+positions of the conditional dominance matrix, it is a more difficult
+criterion to achieve and is therefore a stronger designation.</p>
+<p>Note that conditional dominance implies general dominance–but the
+reverse is not true. An IV can generally, but not conditionally,
+dominate another IV.</p>
 </div>
 </div>
 <div id="complete-dominance-designations" class="section level2">
@@ -279,28 +616,80 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 #&gt; Dmnates?am           NA       FALSE         TRUE
 #&gt; Dmnates?cyl        TRUE          NA         TRUE
 #&gt; Dmnates?carb      FALSE       FALSE           NA</code></pre>
-<p>The fourth section reported on by <code>domin</code> prints the <em>complete dominance designations</em> associated with each IV pair. Each IV is compared to each other IV and has two entries in this matrix. The row labels denote that the IV noted in the label “completely dominates” the IV noted in the column label. By contrast, the column labels denote that the IV in the label “is completely dominated by” the IV in the row label. Each designation is then assigned a logical value or <code>NA</code> (when no such designation can be made given the model results).</p>
-<p>The complete dominance designations are useful beyond the general and conditional dominance results as they are the most stringent sets of comparisons. Complete dominance reflects the relative performance of each IV to another IV in all the sub-models where their relative predictive performance can be compared. The results of this section are then not statistics but are an extensive series of inequality comparisons (i.e., in the mathematical sense <span class="math inline">\(&gt;\)</span>, <span class="math inline">\(&lt;\)</span>) of individual sub-models expressed as logical designations.</p>
+<p>The fourth section reported on by <code>domin</code> prints the
+<em>complete dominance designations</em> associated with each IV pair.
+Each IV is compared to each other IV and has two entries in this matrix.
+The IV noted in the row labels represent a “completely dominates”
+relationship with the IV noted in the column label. By contrast, the IV
+noted in the column labels represent a “is completely dominated by”
+relationship with the IV in the row label. Each designation is then
+assigned a logical value or <code>NA</code> (i.e., when no complete
+dominance designation can be made).</p>
+<p>The complete dominance designations are useful beyond the general and
+conditional dominance results as they are the most stringent sets of
+comparisons. Complete dominance reflects the relative performance of
+each IV to another IV in all the sub-models where their relative
+predictive performance can be compared. The results of this section are
+then not statistics but are the aggregate of an extensive series of
+inequality comparisons (i.e., in the mathematical sense: <span class="math inline">\(&gt;\)</span>, <span class="math inline">\(&lt;\)</span>) of individual sub-models expressed
+as logical designations.</p>
 <div id="points-of-note-complete-dominance" class="section level3">
 <h3>Points of Note: Complete Dominance</h3>
-<p>Complete dominance designations are the most stringent of the designations as <em>all</em> comparable sub-models for an IV must be larger than its comparison IV for the “conditionally dominates” label to be ascribed to their relationship. The sorts of sub-models that qualify as ‘comparable’ is discussed later.</p>
-<p>Also note that complete dominance implies both conditional and general dominance but, again, not the reverse. An IV can conditionally or generally, but not completely, dominate another IV.</p>
+<p>Complete dominance designations are the most stringent of the
+designations as <em>all</em> comparable sub-models for an IV must be
+larger than its comparison IV for the “conditionally dominates” label to
+be ascribed to their relationship. The sorts of sub-models that qualify
+as ‘comparable’ is discussed later.</p>
+<p>Also note that complete dominance implies both conditional and
+general dominance but, again, not the reverse. An IV can conditionally
+or generally, but not completely, dominate another IV.</p>
 </div>
 </div>
 </div>
 <div id="dominance-statistics-and-designations-key-computational-details" class="section level1">
-<h1>Dominance Statistics and Designations: Key Computational Details</h1>
-<p>The DA methodology currently implemented in <code>{domir}</code> is a relatively assumption-free but computationally expensive methodology that follows from the way Shapley value decomposition was originally formulated.</p>
-<p>The sections below begin by providing an analogy for how to think about the computation of DA results, outline exactly how each dominance statistic and designation is determined, as well as extend the example above by applying each computation in the context of the example.</p>
+<h1>Dominance Statistics and Designations: Key Computational
+Details</h1>
+<p>The DA methodology currently implemented in <code>{domir}</code> is a
+relatively assumption-free and model agnostic but computationally
+expensive methodology that follows from the way Shapley value
+decomposition was originally formulated.</p>
+<p>The sections below begin by providing an analogy for how to think
+about the computation of DA results, outline exactly how each dominance
+statistic and designation is determined, as well as extend the example
+above by applying each computation in the context of the example.</p>
 <div id="computational-implementation-da-as-an-experiment" class="section level2">
 <h2>Computational Implementation: DA as an Experiment</h2>
-<p>Shapley value decomposition and DA have traditionally been implemented by treating the cooperative game/predictive model as though it was an experimental design which seeks to evaluate the impact of the players/IVs on the payoff/fit statistic. When designing the experiment applied to the model, it is assumed that the only factors are the IVs and that they all have two levels: 1) the IV is included in the sub-model or 2) the IV is excluded from the sub-model—all other potential inputs to the model are constant.</p>
-<p>The specific type of design applied to the model is a full-factorial design where all possible combinations of the IVs included or excluded are estimated as sub-models. When there are <span class="math inline">\(p\)</span> IVs in the model there will be <span class="math inline">\(2^p\)</span> sub-models estimated. The full-factorial design required for computing dominance statistics and designations is why the traditional approach is considered computationally expensive—each additional IV added to the model results in a geometric increase in the number of requires sub-models to estimate.</p>
+<p>Shapley value decomposition and DA have traditionally been
+implemented by treating the cooperative game/predictive model as though
+it was an experimental design which seeks to evaluate the impact of the
+players/IVs on the payoff/fit statistic. When designing the experiment
+applied to the model, it is assumed that the only factors are the IVs
+and that they all have two levels: 1) the IV is included in the
+sub-model or 2) the IV is excluded from the sub-model—all other
+potential inputs to the model are constant.</p>
+<p>The specific type of design applied to the model is a full-factorial
+design where all possible combinations of the IVs included or excluded
+are estimated as sub-models. When there are <span class="math inline">\(p\)</span> IVs in the model there will be <span class="math inline">\(2^p\)</span> sub-models estimated. The
+full-factorial design required for computing dominance statistics and
+designations is why the traditional approach is considered
+computationally expensive as each additional IV added to the model
+results in a geometric increase in the number of requires sub-models to
+estimate.</p>
 </div>
 <div id="da-results-the-full-factorial-design" class="section level2">
 <h2>DA Results: The Full-Factorial Design</h2>
-<p>The DA results related to the <code>lm</code> model with three IVs discussed above is composed of 8 sub-models and their <span class="math inline">\(R^2\)</span> values. The <code>domin</code> function, if supplied a predictive modeling function that can record each sub-model’s results, can be adapted to capture each sub-model’s <span class="math inline">\(R^2\)</span> value along with the IVs that comprise it.</p>
-<p>The code below constructs a wrapper function to export results from each sub-model to an external data frame. The code to produce these results is complex and each line is commented to note its purpose. This wrapper function then replaces <code>lm</code> in the call to <code>domin</code> so that, as the DA is executed, all the sub-models’ data are captured for the illustration to come.</p>
+<p>The DA results related to the <code>lm</code> model with three IVs
+discussed above is composed of 8 sub-models and their <span class="math inline">\(R^2\)</span> values. The <code>domin</code>
+function, if supplied a predictive modeling function that can record
+each sub-model’s results, can be adapted to capture each sub-model’s
+<span class="math inline">\(R^2\)</span> value along with the IVs that
+comprise it.</p>
+<p>The code below constructs a wrapper function to export results from
+each sub-model to an external data frame. The code to produce these
+results is complex and each line is commented to note its purpose. This
+wrapper function then replaces <code>lm</code> in the call to
+<code>domin</code> so that, as the DA is executed, all the sub-models’
+data are captured for the illustration to come.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>lm_capture <span class="ot">&lt;-</span> </span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(formula, ...) { <span class="co"># wrapper program that accepts formula and ellipsis arguments</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span> <span class="co"># increment counter in enclosing environment</span></span>
@@ -333,16 +722,36 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5       mpg ~ am + carb 0.7036726</span></span>
 <span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6      mpg ~ cyl + carb 0.7405408</span></span>
 <span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7 mpg ~ am + cyl + carb 0.8113023</span></span></code></pre></div>
-<p>The printed result from the <em>DA_results</em> container data frame shows that <code>domin</code> runs 7 sub-models; each a different combination of the IVs. Note that, by default, the sub-model where all IVs are excluded is assumed to result in a fit statistic value of 0 and is not estimated directly (which can be changed with the <code>consmodel</code> argument).</p>
-<p>The <span class="math inline">\(R^2\)</span> values recorded in <em>DA_results</em> are used to compute the dominance statistics and designations reported on above.</p>
+<p>The printed result from <em>DA_results</em> shows that
+<code>domin</code> runs 7 sub-models; each a different combination of
+the IVs. Note that, by default, the sub-model where all IVs are excluded
+is assumed to result in a fit statistic value of 0 and is not estimated
+directly (which can be changed with the <code>consmodel</code> argument
+to <code>domin</code>).</p>
+<p>The <span class="math inline">\(R^2\)</span> values recorded in
+<em>DA_results</em> are used to compute the dominance statistics and
+designations reported on above.</p>
 <div id="complete-dominance-designations-1" class="section level3">
 <h3>Complete Dominance Designations</h3>
 <p>Complete dominance between two IVs is designated by:</p>
-<p><span class="math display">\[X_vDX_z\; if\;2^{p-2}\, =\, \Sigma^{2^{p-2}}_{j=1}{ \{\begin{matrix} if\, F_{X_v\; \cup\;S_j}\, &gt; F_{X_z\; \cup\;S_j}\, \,then\, 1\, \\ if\, F_{X_v\; \cup\;S_j}\, \le F_{X_z\; \cup\;S_j}\,then\, \,0\end{matrix} }\]</span></p>
-<p>Where <span class="math inline">\(X_v\)</span> and <span class="math inline">\(X_z\)</span> are two IVs, <span class="math inline">\(S_j\)</span> is a distinct set of the other IVs in the model not including <span class="math inline">\(X_v\)</span> and <span class="math inline">\(X_z\)</span> which can include the null set (<span class="math inline">\(\emptyset\)</span>) with no other IVs, and <span class="math inline">\(F\)</span> is a model fit statistic. Conceptually, this computation implies that when <strong>all</strong> <span class="math inline">\(2^{p-2}\)</span> comparisons show that <span class="math inline">\(X_v\)</span> is greater than <span class="math inline">\(X_z\)</span>, then <span class="math inline">\(X_v\)</span> completely dominates <span class="math inline">\(X_z\)</span>.</p>
-<p>The results from <em>DA_results</em> can then be used to make the comparisons required to determine whether each pair of IVs completely dominates the other. The comparison begins with the results for <code>am</code> and <code>cyl</code>.</p>
+<p><span class="math display">\[X_vDX_z\; if\;2^{p-2}\, =\,
+\Sigma^{2^{p-2}}_{j=1}{ \{\begin{matrix} if\, F_{X_v\; \cup\;S_j}\, &gt;
+F_{X_z\; \cup\;S_j}\, \,then\, 1\, \\ if\, F_{X_v\; \cup\;S_j}\, \le
+F_{X_z\; \cup\;S_j}\,then\, \,0\end{matrix} }\]</span></p>
+<p>Where <span class="math inline">\(X_v\)</span> and <span class="math inline">\(X_z\)</span> are two IVs, <span class="math inline">\(S_j\)</span> is a distinct set of the other IVs in
+the model not including <span class="math inline">\(X_v\)</span> and
+<span class="math inline">\(X_z\)</span> which can include the null set
+(<span class="math inline">\(\emptyset\)</span>) with no other IVs, and
+<span class="math inline">\(F\)</span> is a model fit statistic.
+Conceptually, this computation implies that when <strong>all</strong>
+<span class="math inline">\(2^{p-2}\)</span> comparisons show that <span class="math inline">\(X_v\)</span> is greater than <span class="math inline">\(X_z\)</span>, then <span class="math inline">\(X_v\)</span> completely dominates <span class="math inline">\(X_z\)</span>.</p>
+<p>The results from <em>DA_results</em> can then be used to make the
+comparisons required to determine whether each pair of IVs completely
+dominates the other. The comparison begins with the results for
+<code>am</code> and <code>cyl</code>.</p>
 <table>
-<caption>Complete Dominance Comparisons: <code>am</code> versus <code>cyl</code></caption>
+<caption>Complete Dominance Comparisons: <code>am</code> versus
+<code>cyl</code></caption>
 <thead>
 <tr class="header">
 <th align="left">formula</th>
@@ -366,10 +775,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The rows in the table above are aligned such that comparable models are in the rows. As applied to this example, the <span class="math inline">\(S_j\)</span> sets are <span class="math inline">\(\emptyset\)</span> with no other IVs and the set also including <em>carb</em>.</p>
-<p>The <span class="math inline">\(R^2\)</span> values across the comparable models show that <em>cyl</em> clearly has larger <span class="math inline">\(R^2\)</span> values than <em>am</em>.</p>
+<p>The rows in the table above are aligned such that comparable models
+are in the rows. As applied to this example, the <span class="math inline">\(S_j\)</span> sets are <span class="math inline">\(\emptyset\)</span> (i.e., the null set) with no
+other IVs and the set also including <em>carb</em>.</p>
+<p>The <span class="math inline">\(R^2\)</span> values across the
+comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>am</em>.</p>
 <table>
-<caption>Complete Dominance Comparisons: <code>am</code> versus <code>carb</code></caption>
+<caption>Complete Dominance Comparisons: <code>am</code> versus
+<code>carb</code></caption>
 <thead>
 <tr class="header">
 <th align="left">formula</th>
@@ -393,10 +806,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>Here the <span class="math inline">\(S_j\)</span> sets are, again, <span class="math inline">\(\emptyset\)</span> and the set also including <em>cyl</em>.</p>
-<p>The <span class="math inline">\(R^2\)</span> values across the comparable models show that <em>am</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
+<p>Here the <span class="math inline">\(S_j\)</span> sets are, again,
+<span class="math inline">\(\emptyset\)</span> and the set also
+including <em>cyl</em>.</p>
+<p>The <span class="math inline">\(R^2\)</span> values across the
+comparable models show that <em>am</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
 <table>
-<caption>Complete Dominance Comparisons: <code>cyl</code> versus <code>carb</code></caption>
+<caption>Complete Dominance Comparisons: <code>cyl</code> versus
+<code>carb</code></caption>
 <thead>
 <tr class="header">
 <th align="left">formula</th>
@@ -420,9 +837,13 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>Finally, the <span class="math inline">\(S_j\)</span> sets are the <span class="math inline">\(\emptyset\)</span> and the set also including <em>am</em>.</p>
-<p>The <span class="math inline">\(R^2\)</span> values across the comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
-<p>Each of these three sets of comparisons are represented in the <em>Complete_Dominance</em> matrix.</p>
+<p>Finally, the <span class="math inline">\(S_j\)</span> sets are the
+<span class="math inline">\(\emptyset\)</span> and the set also
+including <em>am</em>.</p>
+<p>The <span class="math inline">\(R^2\)</span> values across the
+comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
+<p>Each of these three sets of comparisons are represented in the
+<em>Complete_Dominance</em> matrix.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>Complete_Dominance</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              Dmnated_am Dmnated_cyl Dmnated_carb</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates_am           NA       FALSE         TRUE</span></span>
@@ -432,15 +853,36 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <div id="computing-conditional-dominance" class="section level3">
 <h3>Computing Conditional Dominance</h3>
 <p>Conditional dominance statistics are computed as:</p>
-<p><span class="math display">\[C^i_{X_v} = \Sigma^{\begin{bmatrix}p-1\\i-1\end{bmatrix}}_{i=1}{\frac{F_{X_v\; \cup\; S_i}\, - F_{S_i}}{\begin{bmatrix}p-1\\i-1\end{bmatrix}}}\]</span></p>
-<p>Where <span class="math inline">\(S_i\)</span> is a subset of IVs not including <span class="math inline">\(X_v\)</span> and <span class="math inline">\(\begin{bmatrix}p-1\\i-1\end{bmatrix}\)</span> is the number of distinct combinations produced choosing the number of elements in the bottom value (<span class="math inline">\(i-1\)</span>) given the number of elements in the top value (<span class="math inline">\(p-1\)</span>; i.e., the value produced by <code>choose(p-1, i-1)</code>).</p>
-<p>In effect, the formula above amounts to an average of the differences between each model containing <span class="math inline">\(X_v\)</span> from the comparable model not containing it by the number of IVs in the model total. As applied to the results from <em>DA_results</em>, <em>am</em>’s conditional dominance statistics are computed with the following differences:</p>
-<table>
-<caption>Conditional Dominance Computations: <code>am</code> with One IV/Alone</caption>
+<p><span class="math display">\[C^i_{X_v} =
+\Sigma^{\begin{bmatrix}p-1\\i-1\end{bmatrix}}_{i=1}{\frac{F_{X_v\;
+\cup\; S_i}\, -
+F_{S_i}}{\begin{bmatrix}p-1\\i-1\end{bmatrix}}}\]</span></p>
+<p>Where <span class="math inline">\(S_i\)</span> is a subset of IVs not
+including <span class="math inline">\(X_v\)</span> and <span class="math inline">\(\begin{bmatrix}p-1\\i-1\end{bmatrix}\)</span> is
+the number of distinct combinations produced choosing the number of
+elements in the bottom value (<span class="math inline">\(i-1\)</span>)
+given the number of elements in the top value (<span class="math inline">\(p-1\)</span>; i.e., the value produced by
+<code>choose(p-1, i-1)</code>).</p>
+<p>In effect, the formula above amounts to an average of the differences
+between each model containing <span class="math inline">\(X_v\)</span>
+from the comparable model not containing it by the number of IVs in the
+model total. As applied to the results from <em>DA_results</em>,
+<em>am</em>’s conditional dominance statistics are computed with the
+following differences:</p>
+<table style="width:100%;">
+<caption>Conditional Dominance Computations: <code>am</code> with One
+IV/Alone</caption>
+<colgroup>
+<col width="21%" />
+<col width="16%" />
+<col width="26%" />
+<col width="20%" />
+<col width="15%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -456,12 +898,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<table>
-<caption>Conditional Dominance Computations: <code>am</code> with Two IVs</caption>
+<table style="width:100%;">
+<caption>Conditional Dominance Computations: <code>am</code> with Two
+IVs</caption>
+<colgroup>
+<col width="21%" />
+<col width="16%" />
+<col width="26%" />
+<col width="20%" />
+<col width="15%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -485,11 +935,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <table>
-<caption>Conditional Dominance Computations: <code>am</code> with Three IVs/Full Model</caption>
+<caption>Conditional Dominance Computations: <code>am</code> with Three
+IVs/Full Model</caption>
+<colgroup>
+<col width="27%" />
+<col width="15%" />
+<col width="24%" />
+<col width="18%" />
+<col width="13%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -505,15 +963,30 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The rows of each table represent a difference to be recorded for the conditional dominance statistics computation. In the one, two, and three IV comparison tables, the model with <em>am</em> is presented first (as the minutend) and the comparable model without <em>am</em> is presented second (as the subtrahend)—for the 1 IV comparison table, this model is the intercept only model that, as is noted above, is assumed to have a value of 0. The difference is presented last.</p>
-<p>By table, the differences are averaged resulting in the 0.36 value at one IV, the 0.216 at two IVs, and 0.071 at three IVs.</p>
+<p>The rows of each table represent a difference to be recorded for the
+conditional dominance statistics computation. In the one, two, and three
+IV comparison tables, the model with <em>am</em> is presented first (as
+the minuend) and the comparable model without <em>am</em> is presented
+second (as the subtrahend)—for the 1 IV comparison table, this model is
+the intercept only model that, as is noted above, is assumed to have a
+value of 0. The difference is presented last.</p>
+<p>By table, the differences are averaged resulting in the 0.36 value at
+one IV, the 0.216 at two IVs, and 0.071 at three IVs.</p>
 <p>Next the computations for <em>cyl</em> are reported.</p>
-<table>
-<caption>Conditional Dominance Computations: <code>cyl</code> with One IV/Alone</caption>
+<table style="width:100%;">
+<caption>Conditional Dominance Computations: <code>cyl</code> with One
+IV/Alone</caption>
+<colgroup>
+<col width="21%" />
+<col width="16%" />
+<col width="26%" />
+<col width="20%" />
+<col width="15%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -530,11 +1003,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <table>
-<caption>Conditional Dominance Computations: <code>cyl</code> with Two IVs</caption>
+<caption>Conditional Dominance Computations: <code>cyl</code> with Two
+IVs</caption>
+<colgroup>
+<col width="22%" />
+<col width="16%" />
+<col width="25%" />
+<col width="20%" />
+<col width="14%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -558,11 +1039,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <table>
-<caption>Conditional Dominance Computations: <code>cyl</code> with Three IVs/Full Model</caption>
+<caption>Conditional Dominance Computations: <code>cyl</code> with Three
+IVs/Full Model</caption>
+<colgroup>
+<col width="27%" />
+<col width="15%" />
+<col width="24%" />
+<col width="18%" />
+<col width="13%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -578,14 +1067,23 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>Again, the differences are averaged resulting in the 0.726 value at one IV, the 0.418 at two IVs, and 0.108 at three IVs.</p>
+<p>Again, the differences are averaged resulting in the 0.726 value at
+one IV, the 0.418 at two IVs, and 0.108 at three IVs.</p>
 <p>Finally, the computations for <em>carb</em>.</p>
-<table>
-<caption>Conditional Dominance Computations: <code>carb</code> with One IV/Alone</caption>
+<table style="width:100%;">
+<caption>Conditional Dominance Computations: <code>carb</code> with One
+IV/Alone</caption>
+<colgroup>
+<col width="21%" />
+<col width="16%" />
+<col width="26%" />
+<col width="20%" />
+<col width="15%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -602,11 +1100,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <table>
-<caption>Conditional Dominance Computations: <code>carb</code> with Two IVs</caption>
+<caption>Conditional Dominance Computations: <code>carb</code> with Two
+IVs</caption>
+<colgroup>
+<col width="22%" />
+<col width="16%" />
+<col width="25%" />
+<col width="20%" />
+<col width="14%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -630,11 +1136,19 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <table>
-<caption>Conditional Dominance Computations: <code>carb</code> with Three IVs/Full Model</caption>
+<caption>Conditional Dominance Computations: <code>carb</code> with
+Three IVs/Full Model</caption>
+<colgroup>
+<col width="27%" />
+<col width="15%" />
+<col width="24%" />
+<col width="18%" />
+<col width="13%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th align="left">formula minutend</th>
-<th align="right">R^2 minutend</th>
+<th align="left">formula minuend</th>
+<th align="right">R^2 minuend</th>
 <th align="left">formula subtrahend</th>
 <th align="right">R^2 subtrahend</th>
 <th align="right">difference</th>
@@ -650,17 +1164,23 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>And again, the differences are averaged resulting in the 0.304 value at one IV, the 0.179 at two IVs, and 0.052 at three IVs.</p>
-<p>These nine values then populate the conditional dominance statistic matrix.</p>
+<p>And again, the differences are averaged resulting in the 0.304 value
+at one IV, the 0.179 at two IVs, and 0.052 at three IVs.</p>
+<p>These nine values then populate the conditional dominance statistic
+matrix.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>Conditional_Dominance</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          IVs_1     IVs_2      IVs_3</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span></code></pre></div>
-<p>The conditional dominance matrix’s values can then be used in a way similar to the complete dominance designations above in creating a series of logical designations indicating whether each IV conditionally dominates each other.</p>
+<p>The conditional dominance matrix’s values can then be used in a way
+similar to the complete dominance designations above in creating a
+series of logical designations indicating whether each IV conditionally
+dominates each other.</p>
 <p>Below the comparisons begin with <em>am</em> and <em>cyl</em></p>
 <table>
-<caption>Conditional Dominance Designation: <code>am</code> Compared to <code>cyl</code></caption>
+<caption>Conditional Dominance Designation: <code>am</code> Compared to
+<code>cyl</code></caption>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -690,11 +1210,18 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The table above is a transpose of the conditional dominance statistic matrix with an additional <em>comparison</em> column indicating whether the first IV/<em>am</em>’s conditional dominance statistic at that number of IVs is greater than the second IV/<em>cyl</em>’s.</p>
-<p>Conditional dominance is determined by all values being <code>TRUE</code> or <code>FALSE</code>; in this case, <em>cyl</em> is seen to conditionally dominate <em>am</em> as all values are <code>FALSE</code>.</p>
+<p>The table above is a transpose of the conditional dominance statistic
+matrix with an additional <em>comparison</em> column indicating whether
+the first IV/<em>am</em>’s conditional dominance statistic at that
+number of IVs is greater than the second IV/<em>cyl</em>’s.</p>
+<p>Conditional dominance is determined by all values being
+<code>TRUE</code> or <code>FALSE</code>; in this case, <em>cyl</em> is
+seen to conditionally dominate <em>am</em> as all values are
+<code>FALSE</code>.</p>
 <p>Next is the comparison between <em>am</em> and <em>carb</em></p>
 <table>
-<caption>Conditional Dominance Designation: <code>am</code> Compared to <code>carb</code></caption>
+<caption>Conditional Dominance Designation: <code>am</code> Compared to
+<code>carb</code></caption>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -724,10 +1251,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>Here <em>am</em> conditionally dominates <em>carb</em> as all values are <code>TRUE</code>.</p>
+<p>Here <em>am</em> conditionally dominates <em>carb</em> as all values
+are <code>TRUE</code>.</p>
 <p>The final comparison between <em>cyl</em> and <em>carb</em></p>
 <table>
-<caption>Conditional Dominance Designation: <code>cyl</code> Compared to <code>carb</code></caption>
+<caption>Conditional Dominance Designation: <code>cyl</code> Compared to
+<code>carb</code></caption>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -757,15 +1286,33 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p><em>cyl</em> also conditionally dominates <em>carb</em> as all values are <code>TRUE</code>.</p>
-<p>As was mentioned in the <strong>Concepts in Application</strong> section, because we knew all three IVs have complete dominance designations relative to one another, they necessarily also had conditional dominance designations relative to one another.</p>
+<p><em>cyl</em> also conditionally dominates <em>carb</em> as all values
+are <code>TRUE</code>.</p>
+<p>Another way of looking at conditional dominance is by graphing the
+trajectory of each IV across all positions in the conditional dominance
+matrix. If an IV’s line crosses another IV’s line, then a conditional
+dominance relationship between those two IVs cannot be determined. A
+graphic depicting the trajectory of the three IVs in the focal model is
+depicted below.</p>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>The graph above confirms that all three IV’s lines never cross and
+thus have a clear set of conditional dominance designations.</p>
+<p>As was mentioned in the <strong>Concepts in Application</strong>
+section, because we knew all three IVs have complete dominance
+designations relative to one another, they necessarily also had
+conditional dominance designations relative to one another.</p>
 </div>
 <div id="computing-general-dominance" class="section level3">
 <h3>Computing General Dominance</h3>
 <p>General dominance is computed as:</p>
-<p><span class="math display">\[C_{X_v} = \Sigma^p_{i=1}{\frac{C^i_{X_v}}{p}}\]</span></p>
-<p>Where, <span class="math inline">\(C^{i}_{X_x}\)</span> are the conditional dominance statistics for <span class="math inline">\(X_v\)</span> with <span class="math inline">\(i\)</span> IVs. Hence, the general dominance statistics are the arithmetic average of all the conditional dominance statistics for an IV.</p>
-<p>When applied to <em>am</em>’s results, the general dominance statistic value is:</p>
+<p><span class="math display">\[C_{X_v} =
+\Sigma^p_{i=1}{\frac{C^i_{X_v}}{p}}\]</span></p>
+<p>Where, <span class="math inline">\(C^{i}_{X_x}\)</span> are the
+conditional dominance statistics for <span class="math inline">\(X_v\)</span> with <span class="math inline">\(i\)</span> IVs. Hence, the general dominance
+statistics are the arithmetic average of all the conditional dominance
+statistics for an IV.</p>
+<p>When applied to <em>am</em>’s results, the general dominance
+statistic value is:</p>
 <table>
 <caption>General Dominance Computations: <code>am</code></caption>
 <thead>
@@ -825,12 +1372,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>Taken as a set, these values represent the general dominance statistic/Shapley value decomposition vector:</p>
+<p>Taken as a set, these values represent the general dominance
+statistic/Shapley value decomposition vector:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>General_Dominance</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        am       cyl      carb </span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.2156848 0.4173094 0.1783081</span></span></code></pre></div>
-<p>The general dominance statistic vector can also be used in a way similar to that of the complete and conditional dominance designations by ranking each value.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">data.frame</span>(<span class="at">IV =</span> <span class="fu">names</span>(lm_da<span class="sc">$</span>General_Dominance), <span class="st">`</span><span class="at">general dominance</span><span class="st">`</span> <span class="ot">=</span> lm_da<span class="sc">$</span>General_Dominance, <span class="at">ranks =</span> lm_da<span class="sc">$</span>Ranks, <span class="at">check.names =</span> <span class="cn">FALSE</span>), <span class="at">row.names =</span> <span class="cn">FALSE</span>, <span class="at">caption =</span> <span class="st">&quot;General Dominance Designations&quot;</span>, <span class="at">digits =</span> <span class="dv">3</span>)</span></code></pre></div>
+<p>The general dominance statistic vector can also be used in a way
+similar to that of the complete and conditional dominance designations
+by ranking each value.</p>
 <table>
 <caption>General Dominance Designations</caption>
 <thead>
@@ -858,32 +1407,68 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The rank ordering above shows that <em>am</em> is generally dominated by <em>cyl</em>, <em>am</em> generally dominates <em>carb</em>, and <em>cyl</em> also generally dominates <em>carb</em>.</p>
-<p>Again because we knew all three IVs have complete and conditional dominance designations relative to one another, they necessarily also had general dominance designations relative to one another.</p>
+<p>The rank ordering above shows that <em>am</em> is generally dominated
+by <em>cyl</em>, <em>am</em> generally dominates <em>carb</em>, and
+<em>cyl</em> also generally dominates <em>carb</em>.</p>
+<p>Again because we knew all three IVs have complete and conditional
+dominance designations relative to one another, they necessarily also
+had general dominance designations relative to one another.</p>
 <div id="general-dominanceshapley-values-weighted-average-of-all-submodels" class="section level4">
-<h4>General Dominance/Shapley Values: Weighted Average of All Submodels</h4>
-<p>It is also worth pointing out a subtle feature of the general dominance statistics that tends to be more explicit in the Shapley value decomposition literature, that each general dominance statistic is a weighted average of <strong>all</strong> <span class="math inline">\(2^p\)</span> fit statistics.</p>
-<p>To see how this is the case, first recall the computations related to obtaining conditional dominance statistics for the <em>am</em> IV. If you look at all the entries in the three tables, all 8 models are included either as a minutend or a subtrahend. The general dominance statistics are then just an average of these three conditional dominance statistics. Hence, the general dominance statistics include the value for <strong>every</strong> model.</p>
-<p>The conditional dominance statistics for <em>cyl</em> and <em>carb</em> re-arrange these same models but otherwise use the same information to produce their general dominance statistics.</p>
+<h4>General Dominance/Shapley Values: Weighted Average of All
+Submodels</h4>
+<p>It is also worth pointing out a subtle feature of the general
+dominance statistics that tends to be more explicit discussions about
+the Shapley value decomposition. This feature is that each general
+dominance statistic is a weighted average of <strong>all</strong> <span class="math inline">\(2^p\)</span> fit statistics.</p>
+<p>To see how this is the case, first recall the computations related to
+obtaining conditional dominance statistics for the <em>am</em> IV. If
+you look at all the entries in the three tables, all 8 models are
+included either as a minuend or a subtrahend. The general dominance
+statistics are then just an average of these three conditional dominance
+statistics. Hence, the general dominance statistics include the value
+for <strong>every</strong> model.</p>
+<p>The conditional dominance statistics for <em>cyl</em> and
+<em>carb</em> re-arrange these same models but otherwise use the same
+information to produce their general dominance statistics.</p>
 </div>
 </div>
 </div>
 <div id="strongest-dominance-designations" class="section level2">
 <h2>Strongest Dominance Designations</h2>
-<p>Whereas all dominance designations have been made in the example above, the strongest designation between two IVs is likely of primary interest as the strongest designation, as is noted above, implies all weaker designations.</p>
-<p>To access the strongest dominance designations, the DA object can be submitted to the <code>summary</code> function.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_da)<span class="sc">$</span>Strongest_Dominance</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                                                            </span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;am&quot;                         &quot;am&quot;                   &quot;cyl&quot;                 </span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;is completely dominated by&quot; &quot;completely dominates&quot; &quot;completely dominates&quot;</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;cyl&quot;                        &quot;carb&quot;                 &quot;carb&quot;</span></span></code></pre></div>
-<p>The result the <code>summary</code> function produces in the <em>Strongest_Dominance</em> element is consistent with expectation in that all three IV interrelationships have complete dominance designations between them.</p>
+<p>Whereas all dominance designations have been made in the example
+above, the strongest designation between two IVs is likely of primary
+interest as the strongest designation, as is noted above, implies all
+weaker designations.</p>
+<p>To access the strongest dominance designations, the DA object can be
+submitted to the <code>summary</code> function.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_da)<span class="sc">$</span>Strongest_Dominance</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                                                            </span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;am&quot;                         &quot;am&quot;                   &quot;cyl&quot;                 </span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;is completely dominated by&quot; &quot;completely dominates&quot; &quot;completely dominates&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;cyl&quot;                        &quot;carb&quot;                 &quot;carb&quot;</span></span></code></pre></div>
+<p>The result the <code>summary</code> function produces in the
+<em>Strongest_Dominance</em> element is consistent with expectation in
+that all three IV interrelationships have complete dominance
+designations between them.</p>
 </div>
 </div>
 <div id="parting-thoughts-key-caveat" class="section level1">
 <h1>Parting Thoughts: Key Caveat</h1>
-<p>The DA method implemented by the <code>domir::domin</code> function makes assumptions about the nature of the model that is dominance analyzed; in particular, that the predictive model used in it is “pre-selected”. Hence, the model has been passed through model selection procedures and the user is confident that the IVs/players in the model/game and are, in fact, reasonable to include. DA is intended for use as a model selection tool.</p>
-<p>“Relative importance” as a concept is used in many different ways in statistics and data science and many of them refer to methods that are focused on, or are probably best used for, model selection/identifying trivial IVs for removal. DA is a method that is more focused on importance in a “model evaluation” sense. I see this as being an application where the user describes/interprets IVs’ effects in the context of a finalized, predictive approach.</p>
+<p>The DA method implemented by the <code>domir::domin</code> function
+is <em>relatively</em> assumption-free but does make an assumption about
+the nature of the model that is dominance analyzed. DA assumes that the
+predictive model used is “pre-selected”or has passed through model
+selection procedures and the user is confident that the IVs/players in
+the model/game and are, in fact, reasonable to include. DA is
+<em>not</em> intended for use as a model selection tool.</p>
+<p>“Relative importance” as a concept is used in many different ways in
+statistics and data science. In many cases, methods that focus on
+relative importance are probably best used for model
+selection/identifying trivial IVs for removal. DA, by contrast, is a
+method that is more focused on importance in a “model evaluation” sense.
+What I mean by model evaluation is an application where the user
+describes/interprets IVs’ effects in the context of a finalized,
+predictive model.</p>
 </div>
 
 
