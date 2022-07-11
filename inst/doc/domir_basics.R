@@ -4,9 +4,15 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(forcats)
+library(tidyr)
+library(stringr)
+
 ## ----setup_lm-----------------------------------------------------------------
 library(datasets)
-library(tidyverse)
 
 lm_cars <- 
   lm(mpg ~ am + cyl + carb, data = mtcars)

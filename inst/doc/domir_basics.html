@@ -12,7 +12,7 @@
 
 <meta name="author" content="Joseph Luchman" />
 
-<meta name="date" content="2022-05-07" />
+<meta name="date" content="2022-07-10" />
 
 <title>Conceptual Introduction to Dominance Analysis</title>
 
@@ -337,7 +337,7 @@ Analysis</h1>
 <h3 class="subtitle">Examples and Implementation with
 <code>{domir}</code>’s <code>domin</code></h3>
 <h4 class="author">Joseph Luchman</h4>
-<h4 class="date">2022-05-07</h4>
+<h4 class="date">2022-07-10</h4>
 
 
 
@@ -389,13 +389,10 @@ after a brief introduction to the <code>domin</code> function.</p>
 </div>
 <div id="da-implementation-with-domirdomin" class="section level2">
 <h2>DA Implementation with <code>domir::domin</code></h2>
-<p>The <code>domin</code> function of the <code>{domir}</code> package
-is an API for applying DA to predictive modeling functions in R. The
-sections below will use this function to illustrate how DA is
-implemented and discuss conceptual details of each computation.</p>
-<p>Details on how to work with <code>domin</code> in terms of
-programming and how the API functions will reported on in the <em>domir
-details</em> vignette (under development).</p>
+<p>The <code>domin</code> function<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> of the <code>{domir}</code> package is an
+API for applying DA to predictive modeling functions in R. The sections
+below will use this function to illustrate how DA is implemented and
+discuss conceptual details of each computation.</p>
 </div>
 </div>
 <div id="concepts-in-application" class="section level1">
@@ -412,40 +409,31 @@ statistics and data science.</p>
 <p>Consider this model using the <em>mtcars</em> data in the
 <code>{datasets}</code> package.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(datasets)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ ggplot2 3.3.6     ✔ purrr   0.3.4</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ tibble  3.1.7     ✔ dplyr   1.0.9</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ tidyr   1.2.0     ✔ stringr 1.4.0</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✔ readr   2.1.2     ✔ forcats 0.5.1</span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✖ dplyr::filter() masks stats::filter()</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ✖ dplyr::lag()    masks stats::lag()</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
 <p>The results show that all three IVs are statistically significant at
 the traditional level (i.e., <span class="math inline">\(p &lt;
 .05\)</span>) and that, in total, the predictors—<em>am, cyl</em>, and
@@ -1469,6 +1457,16 @@ method that is more focused on importance in a “model evaluation” sense.
 What I mean by model evaluation is an application where the user
 describes/interprets IVs’ effects in the context of a finalized,
 predictive model.</p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>Note that the <code>domin</code> function has been
+superseded by the <code>domir</code> function. Despite its programming
+designation, this vignette’s purpose is to illustrate dominance analysis
+concepts and will use <code>domin</code> for this purpose as both
+functions produce identical results.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
 </div>
 
 
