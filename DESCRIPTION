@@ -1,7 +1,7 @@
 Package: domir
 Title: Tools to Support Relative Importance Analysis
-Version: 1.0.1
-Date: 2023-4-22
+Version: 1.1.0
+Date: 2023-9-2
 Authors@R: 
     person(given = "Joseph",
            family = "Luchman",
@@ -18,8 +18,8 @@ Description: Methods to apply decomposition-based relative importance
   based on the values returned from other functions.
 Imports: stats, utils
 Suggests: dplyr, forcats, Formula, ggplot2, knitr, parameters,
-        performance, purrr, relaimpo, rlang, rmarkdown, stringr,
-        testthat (>= 3.0.0), tidyr
+        performance, pscl, purrr, relaimpo, rlang, rmarkdown, stringr,
+        systemfit, testthat (>= 3.0.0), tidyr
 License: GPL (>= 3)
 URL: https://github.com/jluchman/domir
 BugReports: https://github.com/jluchman/domir/issues
@@ -29,8 +29,8 @@ Config/testthat/edition: 3
 VignetteBuilder: knitr
 Language: en-US
 NeedsCompilation: no
-Packaged: 2023-04-24 18:29:35 UTC; josephluchman
+Packaged: 2023-09-03 17:20:02 UTC; josephluchman
 Author: Joseph Luchman [aut, cre] (<https://orcid.org/0000-0002-8886-9717>)
 Maintainer: Joseph Luchman <jluchman@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-04-24 20:00:03 UTC
+Date/Publication: 2023-09-03 17:30:02 UTC

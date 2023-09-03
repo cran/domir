@@ -12,7 +12,7 @@
 
 <meta name="author" content="Joseph Luchman" />
 
-<meta name="date" content="2023-04-24" />
+<meta name="date" content="2023-09-03" />
 
 <title>Conceptual Introduction to Dominance Analysis</title>
 
@@ -343,7 +343,7 @@ Analysis</h1>
 <h3 class="subtitle">Examples and Implementation with
 <code>{domir}</code>’s <code>domin</code></h3>
 <h4 class="author">Joseph Luchman</h4>
-<h4 class="date">2023-04-24</h4>
+<h4 class="date">2023-09-03</h4>
 
 
 
@@ -414,63 +414,63 @@ model and fit statistic as both are widely used and understood in
 statistics and data science.</p>
 <p>Consider this model using the <em>mtcars</em> data in the
 <code>{datasets}</code> package.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(datasets)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(datasets)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>  <span class="fu">lm</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="at">data =</span> mtcars)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="fu">summary</span>(lm_cars)</span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; lm(formula = mpg ~ am + cyl + carb, data = mtcars)</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; Residuals:</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="co">#&gt;     Min      1Q  Median      3Q     Max </span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt; -5.8853 -1.1581  0.2646  1.4885  5.4843 </span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt; Coefficients:</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="co">#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="co">#&gt; (Intercept)  32.1731     2.4914  12.914 2.59e-13 ***</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="co">#&gt; am            4.2430     1.3094   3.240 0.003074 ** </span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a><span class="co">#&gt; cyl          -1.7175     0.4298  -3.996 0.000424 ***</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a><span class="co">#&gt; carb         -1.1304     0.4058  -2.785 0.009481 ** </span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="co">#&gt; ---</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="co">#&gt; Residual standard error: 2.755 on 28 degrees of freedom</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="co">#&gt; Multiple R-squared:  0.8113, Adjusted R-squared:  0.7911 </span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a><span class="co">#&gt; F-statistic: 40.13 on 3 and 28 DF,  p-value: 2.855e-10</span></span></code></pre></div>
 <p>The results show that all three IVs are statistically significant at
 the traditional level (i.e., <span class="math inline">\(p &lt;
 .05\)</span>) and that, in total, the predictors—<em>am, cyl</em>, and
 <em>carb</em>—explain ~80% of the variance in <em>mpg</em>.</p>
 <p>I intend to conduct a DA on this model using
 <code>domir::domin</code> and implement the DA as follows:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(domir)</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, </span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>      lm, </span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>      <span class="at">data =</span> mtcars)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Overall Fit Statistic:      0.8113023 </span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; General Dominance Statistics:</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      General Dominance Standardized Ranks</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am           0.2156848    0.2658501     2</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl          0.4173094    0.5143698     1</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb         0.1783081    0.2197801     3</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Conditional Dominance Statistics:</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;         IVs: 1    IVs: 2     IVs: 3</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Complete Dominance Designations:</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              Dmnated?am Dmnated?cyl Dmnated?carb</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?am           NA       FALSE         TRUE</span></span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?cyl        TRUE          NA         TRUE</span></span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates?carb      FALSE       FALSE           NA</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(domir)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, </span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>      lm, </span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>      <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>      <span class="at">data =</span> mtcars)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Overall Fit Statistic:      0.8113023 </span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; General Dominance Statistics:</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;      General Dominance Standardized Ranks</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; am           0.2156848    0.2658501     2</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; cyl          0.4173094    0.5143698     1</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; carb         0.1783081    0.2197801     3</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Conditional Dominance Statistics:</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;         IVs: 1    IVs: 2     IVs: 3</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; Complete Dominance Designations:</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt;              Dmnated?am Dmnated?cyl Dmnated?carb</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; Dmnates?am           NA       FALSE         TRUE</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; Dmnates?cyl        TRUE          NA         TRUE</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt; Dmnates?carb      FALSE       FALSE           NA</span></span></code></pre></div>
 <p>The <code>domin</code> function above prints out results in four
 sections:</p>
 <ol style="list-style-type: decimal">
@@ -684,38 +684,38 @@ results is complex and each line is commented to note its purpose. This
 wrapper function then replaces <code>lm</code> in the call to
 <code>domin</code> so that, as the DA is executed, all the sub-models’
 data are captured for the illustration to come.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>lm_capture <span class="ot">&lt;-</span> </span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(formula, ...) { <span class="co"># wrapper program that accepts formula and ellipsis arguments</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span> <span class="co"># increment counter in enclosing environment</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    lm_obj <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, ...) <span class="co"># estimate &#39;lm&#39; model and save object</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;formula&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">deparse</span>(formula) <span class="co"># record string version of formula passed in &#39;DA_results&#39; in enclosing environment</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;R^2&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">summary</span>(lm_obj)[[<span class="st">&quot;r.squared&quot;</span>]] <span class="co"># record R^2 in &#39;DA_results&#39; in enclosing environment</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(lm_obj) <span class="co"># return &#39;lm&#39; class-ed object</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>count <span class="ot">&lt;-</span> <span class="dv">0</span> <span class="co"># initialize the count indicating the row in which the results will fill-in</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>DA_results <span class="ot">&lt;-</span> <span class="co"># container data frame in which to record results</span></span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">formula =</span> <span class="fu">rep</span>(<span class="st">&quot;&quot;</span>, <span class="at">times =</span> <span class="dv">2</span><span class="sc">^</span><span class="dv">3-1</span>), </span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>             <span class="st">`</span><span class="at">R^2</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">rep</span>(<span class="cn">NA</span>, <span class="at">times =</span> <span class="dv">2</span><span class="sc">^</span><span class="dv">3-1</span>), </span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>lm_da <span class="ot">&lt;-</span> <span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="co"># implement the DA with the wrapper</span></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>               lm_capture, </span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>               <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>               <span class="at">data =</span> mtcars)</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>DA_results</span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                 formula       R^2</span></span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1              mpg ~ am 0.3597989</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2             mpg ~ cyl 0.7261800</span></span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3        mpg ~ am + cyl 0.7590135</span></span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4            mpg ~ carb 0.3035184</span></span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5       mpg ~ am + carb 0.7036726</span></span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6      mpg ~ cyl + carb 0.7405408</span></span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7 mpg ~ am + cyl + carb 0.8113023</span></span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>lm_capture <span class="ot">&lt;-</span> </span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="cf">function</span>(formula, ...) { <span class="co"># wrapper program that accepts formula and ellipsis arguments</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span> <span class="co"># increment counter in enclosing environment</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    lm_obj <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, ...) <span class="co"># estimate &#39;lm&#39; model and save object</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;formula&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>      <span class="fu">deparse</span>(formula) <span class="co"># record string version of formula passed in &#39;DA_results&#39; in enclosing environment</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;R^2&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>      <span class="fu">summary</span>(lm_obj)[[<span class="st">&quot;r.squared&quot;</span>]] <span class="co"># record R^2 in &#39;DA_results&#39; in enclosing environment</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>    <span class="fu">return</span>(lm_obj) <span class="co"># return &#39;lm&#39; class-ed object</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  }</span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>count <span class="ot">&lt;-</span> <span class="dv">0</span> <span class="co"># initialize the count indicating the row in which the results will fill-in</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a>DA_results <span class="ot">&lt;-</span> <span class="co"># container data frame in which to record results</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">formula =</span> <span class="fu">rep</span>(<span class="st">&quot;&quot;</span>, <span class="at">times =</span> <span class="dv">2</span><span class="sc">^</span><span class="dv">3-1</span>), </span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>             <span class="st">`</span><span class="at">R^2</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">rep</span>(<span class="cn">NA</span>, <span class="at">times =</span> <span class="dv">2</span><span class="sc">^</span><span class="dv">3-1</span>), </span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>             <span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>lm_da <span class="ot">&lt;-</span> <span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="co"># implement the DA with the wrapper</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>               lm_capture, </span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>               <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a>               <span class="at">data =</span> mtcars)</span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>DA_results</span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt;                 formula       R^2</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt; 1              mpg ~ am 0.3597989</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt; 2             mpg ~ cyl 0.7261800</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt; 3        mpg ~ am + cyl 0.7590135</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; 4            mpg ~ carb 0.3035184</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt; 5       mpg ~ am + carb 0.7036726</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt; 6      mpg ~ cyl + carb 0.7405408</span></span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="co">#&gt; 7 mpg ~ am + cyl + carb 0.8113023</span></span></code></pre></div>
 <p>The printed result from <em>DA_results</em> shows that
 <code>domin</code> runs 7 sub-models; each a different combination of
 the IVs. Note that, by default, the sub-model where all IVs are excluded
@@ -838,11 +838,11 @@ including <em>am</em>.</p>
 comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
 <p>Each of these three sets of comparisons are represented in the
 <em>Complete_Dominance</em> matrix.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>Complete_Dominance</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;              Dmnated_am Dmnated_cyl Dmnated_carb</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates_am           NA       FALSE         TRUE</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates_cyl        TRUE          NA         TRUE</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Dmnates_carb      FALSE       FALSE           NA</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>lm_da<span class="sc">$</span>Complete_Dominance</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;              Dmnated_am Dmnated_cyl Dmnated_carb</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; Dmnates_am           NA       FALSE         TRUE</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; Dmnates_cyl        TRUE          NA         TRUE</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; Dmnates_carb      FALSE       FALSE           NA</span></span></code></pre></div>
 </div>
 <div id="computing-conditional-dominance" class="section level3">
 <h3>Computing Conditional Dominance</h3>
@@ -1162,11 +1162,11 @@ Three IVs/Full Model</caption>
 at one IV, the 0.179 at two IVs, and 0.052 at three IVs.</p>
 <p>These nine values then populate the conditional dominance statistic
 matrix.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>Conditional_Dominance</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;          IVs_1     IVs_2      IVs_3</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>lm_da<span class="sc">$</span>Conditional_Dominance</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt;          IVs_1     IVs_2      IVs_3</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span></code></pre></div>
 <p>The conditional dominance matrix’s values can then be used in a way
 similar to the complete dominance designations above in creating a
 series of logical designations indicating whether each IV conditionally
@@ -1368,9 +1368,9 @@ statistic value is:</p>
 </table>
 <p>Taken as a set, these values represent the general dominance
 statistic/Shapley value decomposition vector:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>lm_da<span class="sc">$</span>General_Dominance</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;        am       cyl      carb </span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 0.2156848 0.4173094 0.1783081</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>lm_da<span class="sc">$</span>General_Dominance</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt;        am       cyl      carb </span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; 0.2156848 0.4173094 0.1783081</span></span></code></pre></div>
 <p>The general dominance statistic vector can also be used in a way
 similar to that of the complete and conditional dominance designations
 by ranking each value.</p>
@@ -1435,11 +1435,11 @@ interest as the strongest designation, as is noted above, implies all
 weaker designations.</p>
 <p>To access the strongest dominance designations, the DA object can be
 submitted to the <code>summary</code> function.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(lm_da)<span class="sc">$</span>Strongest_Dominance</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                                                            </span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;am&quot;                         &quot;am&quot;                   &quot;cyl&quot;                 </span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;is completely dominated by&quot; &quot;completely dominates&quot; &quot;completely dominates&quot;</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  &quot;cyl&quot;                        &quot;carb&quot;                 &quot;carb&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">summary</span>(lm_da)<span class="sc">$</span>Strongest_Dominance</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt;                                                                            </span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;  &quot;am&quot;                         &quot;am&quot;                   &quot;cyl&quot;                 </span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;  &quot;is completely dominated by&quot; &quot;completely dominates&quot; &quot;completely dominates&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;  &quot;cyl&quot;                        &quot;carb&quot;                 &quot;carb&quot;</span></span></code></pre></div>
 <p>The result the <code>summary</code> function produces in the
 <em>Strongest_Dominance</em> element is consistent with expectation in
 that all three IV interrelationships have complete dominance
