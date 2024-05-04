@@ -1,3 +1,25 @@
+# domir 1.2.0
+
+## visible
+
+-   Basic parallel estimation of all subsets using `parallel::parSapply`
+-   Progress bar added for non-parallel sub-model estimation
+-   Complete dominance reports fraction of total models higher/lower
+    -   Update to `summary` method
+-   `offset()`s now allowed with `formula` method
+-   `formula` input with `.adj` defunct
+-   Better handing of errors returned by '.fct'. Reports the specific error that resulted.
+-   New `pkgdown`-based GitHub page with extra visual design features.
+
+## internal
+
+-   `formula` method sync with `formula_list`
+-   Intercept removal and offsets not allowed in `.all` and `.set`
+
+## bug fix
+
+-   `offsets()` omitted from models with no predictors. Was an issue with `.adj`'s value
+
 # domir 1.1.1
 
 ## bug fixes

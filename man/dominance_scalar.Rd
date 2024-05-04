@@ -2,16 +2,17 @@
 % Please edit documentation in R/dominance_internals.r
 \name{dominance_scalar}
 \alias{dominance_scalar}
-\title{Scalar-returning internal dominance analysis meta-function}
+\title{Dominance analysis meta-function that returns scalar}
 \usage{
 dominance_scalar(
   function2call,
   args_list,
-  adj_model_args,
   value_w_all_names,
   do_cdl,
   do_cpt,
-  reverse
+  reverse,
+  cluster,
+  progress
 )
 }
 \description{

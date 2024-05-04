@@ -1,9 +1,9 @@
-## ----include = FALSE----------------------------------------------------------
+## ----include = FALSE, results='hide'------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-
+#devtools::load_all()
 library(ggplot2)
 library(dplyr)
 library(purrr)
@@ -22,21 +22,24 @@ summary(lm_cars)
 ## ----setup_domir--------------------------------------------------------------
 library(domir)
 
-domin(mpg ~ am + cyl + carb, 
-      lm, 
-      list(summary, "r.squared"), 
-      data = mtcars)
+domir(
+  mpg ~ am + cyl + carb, 
+  function(formula) {
+    lm_model <- lm(formula, data = mtcars)
+    summary(lm_model)[["r.squared"]]
+  }
+)
 
 ## ----capture_r2s--------------------------------------------------------------
 lm_capture <- 
-  function(formula, ...) { # wrapper program that accepts formula and ellipsis arguments
+  function(formula, data, ...) { # wrapper program that accepts formula, data, and ellipsis arguments
     count <<- count + 1 # increment counter in enclosing environment
-    lm_obj <- lm(formula, ...) # estimate 'lm' model and save object
+    lm_obj <- lm(formula, data = data, ...) # estimate 'lm' model and save object
     DA_results[count, "formula"] <<- 
       deparse(formula) # record string version of formula passed in 'DA_results' in enclosing environment
     DA_results[count, "R^2"] <<- 
       summary(lm_obj)[["r.squared"]] # record R^2 in 'DA_results' in enclosing environment
-    return(lm_obj) # return 'lm' class-ed object
+    summary(lm_obj)[["r.squared"]] # return R^2
   }
 
 count <- 0 # initialize the count indicating the row in which the results will fill-in
@@ -46,9 +49,8 @@ DA_results <- # container data frame in which to record results
              `R^2` = rep(NA, times = 2^3-1), 
              check.names = FALSE)
 
-lm_da <- domin(mpg ~ am + cyl + carb, # implement the DA with the wrapper
+lm_da <- domir(mpg ~ am + cyl + carb, # implement the DA with the wrapper
                lm_capture, 
-               list(summary, "r.squared"), 
                data = mtcars)
 
 DA_results
@@ -165,7 +167,7 @@ knitr::kable(data.frame(t(lm_da$Conditional_Dominance[c("am", "carb"),]), compar
 knitr::kable(data.frame(t(lm_da$Conditional_Dominance[c("cyl", "carb"),]), comparison= lm_da$Conditional_Dominance["cyl",] > lm_da$Conditional_Dominance["carb",]), caption = "Conditional Dominance Designation: `cyl` Compared to `carb`", digits = 3)
 
 ## ----condit_gph, echo=FALSE---------------------------------------------------
-lm_da |> pluck("Conditional_Dominance") |> as_tibble(rownames = "pred") |> pivot_longer(names_to = "ivs", values_to = "stat", cols = starts_with("IV")) |> mutate(ivs = fct_relabel(ivs, ~ str_replace(., "_", ": "))) |> ggplot(aes(x = ivs, y = stat, group = pred, color= pred)) + geom_line() + ylab("Conditional Dominance Statistic Value") + xlab("Number of Independent Variables") + labs(color = "Independent\nVariable") + theme_linedraw() + scale_color_viridis_d() 
+lm_da |> pluck("Conditional_Dominance") |> as_tibble(rownames = "pred") |> pivot_longer(names_to = "ivs", values_to = "stat", cols = starts_with("Inclu")) |> mutate(ivs = fct_relabel(ivs, ~ str_replace(., "_", ": "))) |> ggplot(aes(x = ivs, y = stat, group = pred, color= pred)) + geom_line() + ylab("Conditional Dominance Statistic Value") + xlab("Number of Independent Variables") + labs(color = "Independent\nVariable") + theme_linedraw() + scale_color_viridis_d() 
 
 ## ----gen_am, echo=FALSE-------------------------------------------------------
 knitr::kable(data.frame(t(as.data.frame(lm_da$Conditional_Dominance["am",])), `general dominance` = lm_da$General_Dominance[["am"]], check.names = FALSE), row.names = FALSE, caption = "General Dominance Computations: `am`", digits = 3)

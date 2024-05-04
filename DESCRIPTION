@@ -1,7 +1,7 @@
 Package: domir
 Title: Tools to Support Relative Importance Analysis
-Version: 1.1.1
-Date: 2023-10-1
+Version: 1.2.0
+Date: 2024-5-4
 Authors@R: 
     person(given = "Joseph",
            family = "Luchman",
@@ -13,24 +13,25 @@ Description: Methods to apply decomposition-based relative importance
   decomposition methods by providing 'lapply'- or 'Map'-like meta-functions that 
   compute dominance analysis (Azen, R., & Budescu, D. V. (2003) 
   <doi:10.1037/1082-989X.8.2.129>; Grömping, U. (2007) 
-  <doi:10.1198/000313007X188252>) or Shapley value regression 
+  <doi:10.1198/000313007X188252>) an extension of Shapley value regression 
   (Lipovetsky, S., & Conklin, M. (2001) <doi:10.1002/asmb.446>)
   based on the values returned from other functions.
-Imports: stats, utils
-Suggests: dplyr, forcats, Formula, ggplot2, knitr, lme4, parameters,
-        performance, pscl, purrr, relaimpo, rlang, rmarkdown, stringr,
-        systemfit, testthat (>= 3.0.0), tidyr
+Imports: parallel, stats, utils
+Suggests: dplyr, dominanceanalysis, forcats, Formula, ggplot2, knitr,
+        lme4, parameters, performance, pscl, purrr, relaimpo, rlang,
+        rmarkdown, stringr, systemfit, testthat (>= 3.0.0), tidyr
 License: GPL (>= 3)
-URL: https://github.com/jluchman/domir
+URL: https://github.com/jluchman/domir,
+        https://jluchman.github.io/domir/
 BugReports: https://github.com/jluchman/domir/issues
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Language: en-US
 NeedsCompilation: no
-Packaged: 2023-10-01 20:48:12 UTC; josephluchman
+Packaged: 2024-05-04 23:09:05 UTC; josephluchman
 Author: Joseph Luchman [aut, cre] (<https://orcid.org/0000-0002-8886-9717>)
 Maintainer: Joseph Luchman <jluchman@gmail.com>
 Repository: CRAN
-Date/Publication: 2023-10-01 21:30:02 UTC
+Date/Publication: 2024-05-04 23:20:02 UTC

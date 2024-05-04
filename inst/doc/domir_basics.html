@@ -12,7 +12,7 @@
 
 <meta name="author" content="Joseph Luchman" />
 
-<meta name="date" content="2023-10-01" />
+<meta name="date" content="2024-05-04" />
 
 <title>Conceptual Introduction to Dominance Analysis</title>
 
@@ -51,7 +51,7 @@ overflow: visible;
 </style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -145,6 +145,29 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; }
 
 
 
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
 
 <style type="text/css">body {
 background-color: #fff;
@@ -341,16 +364,16 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Conceptual Introduction to Dominance
 Analysis</h1>
 <h3 class="subtitle">Examples and Implementation with
-<code>{domir}</code>’s <code>domin</code></h3>
+<code>domir</code></h3>
 <h4 class="author">Joseph Luchman</h4>
-<h4 class="date">2023-10-01</h4>
+<h4 class="date">2024-05-04</h4>
 
 
 
 <p>The purpose of this vignette is to briefly discuss the conceptual
-underpinnings of the relative importance method implemented in
-<code>{domir}</code> and provide several extensive examples that
-illustrate these concepts as applied to data.</p>
+underpinnings of the relative importance method implemented in the
+<strong>domir</strong> package and provide several extensive examples
+that illustrate these concepts as applied to data.</p>
 <p>This vignette is intended to serve as a refresher for users familiar
 with these concepts as well as an brief introduction to them for those
 who are not.</p>
@@ -359,61 +382,78 @@ the key relative importance method is attempting to do as well as an
 understanding of how it is accomplished as applied to data.</p>
 <div id="conceptual-introduction" class="section level1">
 <h1>Conceptual Introduction</h1>
-<p>The relative importance method implemented in <code>{domir}</code>
-produces results that are relatively easy to interpret but is itself a
-complex method in terms of implementation.</p>
+<p>The relative importance method implemented in the
+<strong>domir</strong> package produces results that are relatively easy
+to interpret but does so in a way that is computationally intensive in
+as implemented.</p>
 <p>The discussion below outlines the conceptual origins of the method,
 what the relative importance method does, and some details about how the
-DA method is implemented in <code>{domir}</code>.</p>
+DA method is implemented in the <strong>domir</strong> package.</p>
 <div id="dominance-analysis" class="section level2">
 <h2>Dominance Analysis</h2>
-<p>The focus of the <code>{domir}</code> package is, currently, on
-dominance analysis (DA). DA can be thought of as an extension of Shapley
-value decomposition from Cooperative Game Theory (see Grömping, 2007 for
-a discussion) which seeks to find a solutions to the problem of how to
+<p>The focus of the <strong>domir</strong> package is on dominance
+analysis (DA). DA is a method that resolves the indeterminacy of trying
+to ascribe a the results from a predictive model’s fit metric, referred
+to as a ‘value’ in the package, to individual predictive factors (i.e.,
+independent variables/IVs, predictors, features), referred to as ‘names’
+in the package.</p>
+<p>A challenge for many predictive models and fit metrics are that there
+is no way to analytically decompose the fit statistic/metric given
+correlations between the predictive factors that are naturally present
+in the data or are introduced by the model. When there is no way to
+analytically separate the fit statistic to ascribe it to predictive
+factors, a methodological approach could be applied where values are
+ascribed by including the factors in the model sequentially. As each
+predictive factor is included, the change in the fit metric is ascribed
+to that predictive factor.</p>
+<p>One issue with the sequential approach is that the sequence chosen to
+ascribe the fit statistic to predictive factors determines how much of
+the fit statistic is ascribed to the factor. When the analyst has good
+reason to choose a specific inclusion order, this approach produces a
+useful result.</p>
+<p>Using a single inclusion order can be problematic when there is
+<em>not</em> a good reason to choose one specific inclusion order over
+another. When the inclusion order is effectively arbitrary, changing the
+order changes the values ascribed to the predictive factors in ways that
+have implications on inferences from the model.</p>
+<p>A solution to this problem is to consider all possible ways of
+including the predictive factor. This method for resolving this issue is
+the approach used by Shapley value decomposition from Cooperative Game
+Theory (see <span class="citation">Grömping (2007)</span> for a
+discussion) which seeks to find a solution to the problem of how to
 subdivide payoffs to players in a cooperative game based on their
-relative contribution to the payoff.</p>
-<p>This methodology can be applied to predictive modeling in a
-conceptually straightforward way. Predictive models are, in a sense, a
-game in which independent variables (IVs)/predictors/features cooperate
-to produce a payoff in the form of predicting the dependent variable
-(DV)/outcome/response. The component of the decomposition/the proportion
-of the payoff ascribed to each IV can then be interpreted as the IVs
-importance in the context of the model as that is the contribution it
-makes to predicting the DV.</p>
-<p>In application, DA determines the relative importance of IVs in a
-predictive model based on each IV’s contribution to an overall model fit
-statistic—a value that describes the entire model’s predictions on a
-dataset at once. DA’s goal extends beyond just the decomposition of the
-focal model fit statistic. In fact, DA produces three different results
-that it uses to compare the contribution each IV makes in the predictive
-model against the contributions attributed to each other IV. The use of
-these three results to compare IVs is the reason DA is an <em>extension
-of</em> Shapley value decomposition. The three different results are
-discussed in greater detail in the context of an example discussed below
-after a brief introduction to the <code>domin</code> function.</p>
+relative contribution when it is not possible to separate relative
+contributions analytically.</p>
+<p>DA uses the idea of comparing across inclusion orders as a
+methodological, and almost experimental design-like, approach to
+determining importance. DA also extends on the classic Shapley value
+decomposition methodology by adding two, more difficult to achieve,
+importance criteria. All three different importance criteria, known as
+dominance designations, are discussed in greater detail in the context
+of an example discussed below after a brief introduction to the
+<code>domir</code> function.</p>
 </div>
-<div id="da-implementation-with-domirdomin" class="section level2">
-<h2>DA Implementation with <code>domir::domin</code></h2>
-<p>The <code>domin</code> function<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> of the <code>{domir}</code> package is an
-API for applying DA to predictive modeling functions in R. The sections
-below will use this function to illustrate how DA is implemented and
-discuss conceptual details of each computation.</p>
+<div id="da-implementation-with-domir" class="section level2">
+<h2>DA Implementation with <code>domir</code></h2>
+<p>The <code>domir</code> function is an API for applying DA to
+predictive modeling functions in R. The sections below will use this
+function to illustrate how DA is implemented and discuss conceptual
+details of each computation.</p>
 </div>
 </div>
 <div id="concepts-in-application" class="section level1">
 <h1>Concepts in Application</h1>
-<p>The purpose of the <code>{domir}</code> package is to apply DA to
+<p>The purpose of the <strong>domir</strong> package is to apply DA to
 predictive models. This section builds on the last by providing an
 example predictive model with which to illustrate the computation and
 interpretation of the dominance results produced by DA.</p>
 <p>DA was developed originally using linear regression (<code>lm</code>)
 with the explained variance <span class="math inline">\(R^2\)</span>
-metric as a fit statistic (Budescu, 1993). The examples below use this
-model and fit statistic as both are widely used and understood in
-statistics and data science.</p>
+metric as a fit statistic <span class="citation">(Budescu 1993)</span>.
+The examples below use this model and fit statistic as both are widely
+used and understood in statistics and data science.</p>
 <p>Consider this model using the <em>mtcars</em> data in the
-<code>{datasets}</code> package.</p>
+<strong>datasets</strong> package.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(datasets)</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
 <span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>lm_cars <span class="ot">&lt;-</span> </span>
@@ -444,45 +484,48 @@ statistics and data science.</p>
 the traditional level (i.e., <span class="math inline">\(p &lt;
 .05\)</span>) and that, in total, the predictors—<em>am, cyl</em>, and
 <em>carb</em>—explain ~80% of the variance in <em>mpg</em>.</p>
-<p>I intend to conduct a DA on this model using
-<code>domir::domin</code> and implement the DA as follows:</p>
+<p>I intend to conduct a DA on this model using <code>domir</code> and
+implement the DA as follows:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(domir)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, </span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>      lm, </span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>      <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>      <span class="at">data =</span> mtcars)</span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; Overall Fit Statistic:      0.8113023 </span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; General Dominance Statistics:</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;      General Dominance Standardized Ranks</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; am           0.2156848    0.2658501     2</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; cyl          0.4173094    0.5143698     1</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt; carb         0.1783081    0.2197801     3</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; Conditional Dominance Statistics:</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;         IVs: 1    IVs: 2     IVs: 3</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; </span></span>
-<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; Complete Dominance Designations:</span></span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt;              Dmnated?am Dmnated?cyl Dmnated?carb</span></span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; Dmnates?am           NA       FALSE         TRUE</span></span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; Dmnates?cyl        TRUE          NA         TRUE</span></span>
-<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt; Dmnates?carb      FALSE       FALSE           NA</span></span></code></pre></div>
-<p>The <code>domin</code> function above prints out results in four
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">domir</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, </span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="cf">function</span>(formula) {</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>    lm_model <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, <span class="at">data =</span> mtcars)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    <span class="fu">summary</span>(lm_model)[[<span class="st">&quot;r.squared&quot;</span>]]</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  }</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; Overall Value:      0.8113023 </span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt; General Dominance Values:</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;      General Dominance Standardized Ranks</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt; am           0.2156848    0.2658501     2</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt; cyl          0.4173094    0.5143698     1</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt; carb         0.1783081    0.2197801     3</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; Conditional Dominance Values:</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt;      Include At: 1 Include At: 2 Include At: 3</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co">#&gt; am       0.3597989     0.2164938    0.07076149</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="co">#&gt; cyl      0.7261800     0.4181185    0.10762967</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="co">#&gt; carb     0.3035184     0.1791172    0.05228872</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="co">#&gt; Complete Dominance Proportions:</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="co">#&gt;        &gt; am &gt; cyl &gt; carb</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="co">#&gt; am &gt;     NA     0      1</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="co">#&gt; cyl &gt;     1    NA      1</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="co">#&gt; carb &gt;    0     0     NA</span></span></code></pre></div>
+<p>The <code>domir</code> function above prints out results in four
 sections:</p>
 <ol style="list-style-type: decimal">
 <li>fit statistic results</li>
 <li>general dominance statistics</li>
 <li>conditional dominance statistics</li>
-<li>complete dominance designations</li>
+<li>complete dominance proportions</li>
 </ol>
 <p>Below I “replay” and discuss each result in turn.</p>
 <div id="fit-statistic-results" class="section level2">
 <h2>Fit Statistic Results</h2>
-<pre><code>#&gt; Overall Fit Statistic:      0.8113023 </code></pre>
+<pre><code>Overall Value:      0.8113023</code></pre>
 <p>The first result <code>domin</code> prints is related to the overall
 fit statistic value for the model. In game theory terms, this value is
 the total payoff all players/IVs produced in the cooperative
@@ -499,11 +542,11 @@ development</em>) when used in the DA.</p>
 </div>
 <div id="general-dominance-statistics" class="section level2">
 <h2>General Dominance Statistics</h2>
-<pre><code>#&gt; General Dominance Statistics:
-#&gt;      General Dominance Standardized Ranks
-#&gt; am           0.2156848    0.2658501     2
-#&gt; cyl          0.4173094    0.5143698     1
-#&gt; carb         0.1783081    0.2197801     3</code></pre>
+<pre><code>General Dominance Values:
+     General Dominance Standardized Ranks
+am           0.2156848    0.2658501     2
+cyl          0.4173094    0.5143698     1
+carb         0.1783081    0.2197801     3</code></pre>
 <p>The second result printed reports the <em>general dominance
 statistics</em> related to how the overall fit statistic’s value is
 divided up among the IVs. These also represent the Shapley value
@@ -547,51 +590,39 @@ easiest to fulfill.</p>
 </div>
 <div id="conditional-dominance-statistics" class="section level2">
 <h2>Conditional Dominance Statistics</h2>
-<pre><code>#&gt; Conditional Dominance Statistics:
-#&gt;         IVs: 1    IVs: 2     IVs: 3
-#&gt; am   0.3597989 0.2164938 0.07076149
-#&gt; cyl  0.7261800 0.4181185 0.10762967
-#&gt; carb 0.3035184 0.1791172 0.05228872</code></pre>
+<pre><code>Conditional Dominance Values:
+     Include At: 1 Include At: 2 Include At: 3
+am       0.3597989     0.2164938    0.07076149
+cyl      0.7261800     0.4181185    0.10762967
+carb     0.3035184     0.1791172    0.05228872</code></pre>
 <p>The third section reported on by <code>domin</code> prints the
 <em>conditional dominance statistics</em> associated with each IV. Each
-IV has a separate conditional dominance statistic related to the number
-of IVs that are in a sub-model; why this matrix is useful delves into
-the computation of these statistics which is discussed later. For the
-time being it suffices to note that, conceptually, these values can be
-thought of as Shapley values for a specific number of players in the
-game. Thus, the <em>IVs: 1</em> column reports on the value of the fit
-statistic/payoff when the IV is “playing alone” (i.e., by itself in the
-model with no other IVs). Similarly, the <em>IVs: 2</em> column reports
-on the average value of the fit statistic/payoff when the IV is “playing
-with one other” (i.e., with another IV irrespective of which) and so on
-until the column with all IVs in the model (here <em>IVs: 3</em>).</p>
-<p>The primary utility of the conditional dominance matrix is that it
-can be used to designate importance in a way that is more
-stringent/harder to achieve than the general dominance statistics.
-Unfortunately, this matrix does not have a ranking like the general
-dominance statistics and it may not be obvious as to how one might use
-this matrix for determining importance.</p>
-<p>To determine importance, the conditional dominance matrix is used is
-‘row-wise’, comparing the results of an entire row/IV against those of
-another row/IV. If the value of each entry for a row/IV is greater than
-the value of another row/IV at the same position (i.e., comparing models
-with the same number of IVs) than an IV is said to “conditionally
-dominate” the other IV. The matrix above shows that <em>am</em> “is
-conditionally dominated by” <em>cyl</em> as its conditional dominance
-statistics are smaller than <em>cyl</em>’s at positions 1, 2, and 3.
-Conversely, <em>am</em> “conditionally dominates” <em>carb</em> as its
-conditional dominance statistics are greater than <em>carb</em>’s at
-positions 1, 2, and 3.</p>
+IV has a separate conditional dominance statistic related to position at
+which it is included in the sequence of IVs in the model.</p>
+<p>The conditional dominance matrix can be used to designate importance
+in a way that is more stringent/harder to achieve than the general
+dominance statistics. To determine importance with the conditional
+dominance matrix each IV is compared to each other in a ‘row-wise’
+fashion. If the value of each entry for a row/IV is greater than the
+value of another row/IV at the same position (i.e., comparing IVs at the
+same inclusion position) than an IV is said to “conditionally dominate”
+the other IV. The matrix above shows that <em>am</em> “is conditionally
+dominated by” <em>cyl</em> as its conditional dominance statistics are
+smaller than <em>cyl</em>’s at positions 1, 2, and 3. Conversely,
+<em>am</em> “conditionally dominates” <em>carb</em> as its conditional
+dominance statistics are greater than <em>carb</em>’s at positions 1, 2,
+and 3.</p>
 <div id="points-of-note-conditional-dominance" class="section level3">
 <h3>Points of Note: Conditional Dominance</h3>
 <p>Conditional dominance statistics provide more information about each
-IV than general dominance statistics as they reveal the effect that IV
-redundancy has on prediction for each IV. To put this a little
-differently, conditional dominance statistics show more clearly the
-utility a specific player/IV adds to the payoff/fit metric. As the
-game/model gets more players/IVs, the contribution any one IV can make
-becomes more limited. This limiting effect with more IVs is reflected in
-the trajectory of conditional dominance statistics.</p>
+IV than general dominance statistics as they more clearly reveal the
+effect that IV redundancy has on prediction for each IV. Conditional
+dominance statistics show the average increase in predictive usefulness
+associated with an IV when it is included at a specific position in the
+sequence of IVs. As the position gets more later in the model, the
+contribution any one IV can make tends to grow more limited. This
+limiting effect with more IVs is reflected in the trajectory of
+conditional dominance statistics.</p>
 <p>The increase in complexity with conditional dominance over that of
 general dominance also results in a more stringent set of comparisons.
 Because the label “conditionally dominates” is only ascribed to a
@@ -603,30 +634,30 @@ reverse is not true. An IV can generally, but not conditionally,
 dominate another IV.</p>
 </div>
 </div>
-<div id="complete-dominance-designations" class="section level2">
-<h2>Complete Dominance Designations</h2>
-<pre><code>#&gt; Complete Dominance Designations:
-#&gt;              Dmnated?am Dmnated?cyl Dmnated?carb
-#&gt; Dmnates?am           NA       FALSE         TRUE
-#&gt; Dmnates?cyl        TRUE          NA         TRUE
-#&gt; Dmnates?carb      FALSE       FALSE           NA</code></pre>
-<p>The fourth section reported on by <code>domin</code> prints the
-<em>complete dominance designations</em> associated with each IV pair.
+<div id="complete-dominance-proportions" class="section level2">
+<h2>Complete Dominance Proportions</h2>
+<pre><code>Complete Dominance Proportions:
+       &gt; am &gt; cyl &gt; carb
+am &gt;     NA     0      1
+cyl &gt;     1    NA      1
+carb &gt;    0     0     NA</code></pre>
+<p>The fourth section reported on by <code>domir</code> prints the
+<em>complete dominance proportions</em> associated with each IV pair.
 Each IV is compared to each other IV and has two entries in this matrix.
-The IV noted in the row labels represent a “completely dominates”
-relationship with the IV noted in the column label. By contrast, the IV
-noted in the column labels represent a “is completely dominated by”
-relationship with the IV in the row label. Each designation is then
-assigned a logical value or <code>NA</code> (i.e., when no complete
-dominance designation can be made).</p>
+The IV noted in the row labels is the ‘dominating’ IV as is implied by
+the greater than symbol (i.e., <span class="math inline">\(&gt;\)</span>) preferring it. The IV noted in the
+column labels is the ‘dominated’ IV as is implied by the greater than
+symbol not preferring it. The values reported are the proportion of
+sub-models in which the IV in the row obtains a larger value than the IV
+in the column.</p>
 <p>The complete dominance designations are useful beyond the general and
 conditional dominance results as they are the most stringent sets of
 comparisons. Complete dominance reflects the relative performance of
 each IV to another IV in all the sub-models where their relative
-predictive performance can be compared. The results of this section are
-then not statistics but are the aggregate of an extensive series of
-inequality comparisons (i.e., in the mathematical sense: <span class="math inline">\(&gt;\)</span>, <span class="math inline">\(&lt;\)</span>) of individual sub-models expressed
-as logical designations.</p>
+predictive performance can be compared. When a value of 1 is obtained,
+the IV in the row is said to “completely dominate” the IV in the column.
+Conversely, when a value of 0 is obtained, the IV in the row is said to
+be “completely dominated by” the IV in the column.</p>
 <div id="points-of-note-complete-dominance" class="section level3">
 <h3>Points of Note: Complete Dominance</h3>
 <p>Complete dominance designations are the most stringent of the
@@ -643,37 +674,32 @@ or generally, but not completely, dominate another IV.</p>
 <div id="dominance-statistics-and-designations-key-computational-details" class="section level1">
 <h1>Dominance Statistics and Designations: Key Computational
 Details</h1>
-<p>The DA methodology currently implemented in <code>{domir}</code> is a
-relatively assumption-free and model agnostic but computationally
+<p>The DA methodology currently implemented in <strong>domir</strong> is
+a relatively assumption-free and model agnostic but computationally
 expensive methodology that follows from the way Shapley value
 decomposition was originally formulated.</p>
 <p>The sections below begin by providing an analogy for how to think
 about the computation of DA results, outline exactly how each dominance
 statistic and designation is determined, as well as extend the example
 above by applying each computation in the context of the example.</p>
-<div id="computational-implementation-da-as-an-experiment" class="section level2">
-<h2>Computational Implementation: DA as an Experiment</h2>
-<p>Shapley value decomposition and DA have traditionally been
-implemented by treating the cooperative game/predictive model as though
-it was an experimental design which seeks to evaluate the impact of the
-players/IVs on the payoff/fit statistic. When designing the experiment
-applied to the model, it is assumed that the only factors are the IVs
-and that they all have two levels: 1) the IV is included in the
-sub-model or 2) the IV is excluded from the sub-model—all other
-potential inputs to the model are constant.</p>
-<p>The specific type of design applied to the model is a full-factorial
-design where all possible combinations of the IVs included or excluded
-are estimated as sub-models. When there are <span class="math inline">\(p\)</span> IVs in the model there will be <span class="math inline">\(2^p\)</span> sub-models estimated. The
-full-factorial design required for computing dominance statistics and
-designations is why the traditional approach is considered
-computationally expensive as each additional IV added to the model
-results in a geometric increase in the number of requires sub-models to
-estimate.</p>
+<div id="computational-implementation-all-possible-orders" class="section level2">
+<h2>Computational Implementation: All Possible Orders</h2>
+<p>DA requires evaluating the contribution IVs make to prediction given
+all possible orders in which they are included in the prediction model.
+As was noted above, this is an experimental design-like approach where
+all possible combinations of the IVs included or excluded are estimated
+as sub-models. When there are <span class="math inline">\(p\)</span> IVs
+in the model there will be <span class="math inline">\(2^p\)</span>
+sub-models estimated. The experimental design-like approach of the
+method makes it widely applicable across predictive models and fit
+statistic values but is computationally expensive as each additional IV
+added to the model results in a geometric increase in the number of
+required sub-models.</p>
 </div>
 <div id="da-results-the-full-factorial-design" class="section level2">
 <h2>DA Results: The Full-Factorial Design</h2>
 <p>The DA results related to the <code>lm</code> model with three IVs
-discussed above is composed of 8 sub-models and their <span class="math inline">\(R^2\)</span> values. The <code>domin</code>
+discussed above is composed of 8 sub-models and their <span class="math inline">\(R^2\)</span> values. The <code>domir</code>
 function, if supplied a predictive modeling function that can record
 each sub-model’s results, can be adapted to capture each sub-model’s
 <span class="math inline">\(R^2\)</span> value along with the IVs that
@@ -682,17 +708,17 @@ comprise it.</p>
 each sub-model to an external data frame. The code to produce these
 results is complex and each line is commented to note its purpose. This
 wrapper function then replaces <code>lm</code> in the call to
-<code>domin</code> so that, as the DA is executed, all the sub-models’
+<code>domir</code> so that, as the DA is executed, all the sub-models’
 data are captured for the illustration to come.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>lm_capture <span class="ot">&lt;-</span> </span>
-<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="cf">function</span>(formula, ...) { <span class="co"># wrapper program that accepts formula and ellipsis arguments</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="cf">function</span>(formula, data, ...) { <span class="co"># wrapper program that accepts formula, data, and ellipsis arguments</span></span>
 <span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    count <span class="ot">&lt;&lt;-</span> count <span class="sc">+</span> <span class="dv">1</span> <span class="co"># increment counter in enclosing environment</span></span>
-<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    lm_obj <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, ...) <span class="co"># estimate &#39;lm&#39; model and save object</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    lm_obj <span class="ot">&lt;-</span> <span class="fu">lm</span>(formula, <span class="at">data =</span> data, ...) <span class="co"># estimate &#39;lm&#39; model and save object</span></span>
 <span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;formula&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>      <span class="fu">deparse</span>(formula) <span class="co"># record string version of formula passed in &#39;DA_results&#39; in enclosing environment</span></span>
 <span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>    DA_results[count, <span class="st">&quot;R^2&quot;</span>] <span class="ot">&lt;&lt;-</span> </span>
 <span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>      <span class="fu">summary</span>(lm_obj)[[<span class="st">&quot;r.squared&quot;</span>]] <span class="co"># record R^2 in &#39;DA_results&#39; in enclosing environment</span></span>
-<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>    <span class="fu">return</span>(lm_obj) <span class="co"># return &#39;lm&#39; class-ed object</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a>    <span class="fu">summary</span>(lm_obj)[[<span class="st">&quot;r.squared&quot;</span>]] <span class="co"># return R^2</span></span>
 <span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a>  }</span>
 <span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a></span>
 <span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a>count <span class="ot">&lt;-</span> <span class="dv">0</span> <span class="co"># initialize the count indicating the row in which the results will fill-in</span></span>
@@ -702,47 +728,45 @@ data are captured for the illustration to come.</p>
 <span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a>             <span class="st">`</span><span class="at">R^2</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">rep</span>(<span class="cn">NA</span>, <span class="at">times =</span> <span class="dv">2</span><span class="sc">^</span><span class="dv">3-1</span>), </span>
 <span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a>             <span class="at">check.names =</span> <span class="cn">FALSE</span>)</span>
 <span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>lm_da <span class="ot">&lt;-</span> <span class="fu">domin</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="co"># implement the DA with the wrapper</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a>lm_da <span class="ot">&lt;-</span> <span class="fu">domir</span>(mpg <span class="sc">~</span> am <span class="sc">+</span> cyl <span class="sc">+</span> carb, <span class="co"># implement the DA with the wrapper</span></span>
 <span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a>               lm_capture, </span>
-<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>               <span class="fu">list</span>(summary, <span class="st">&quot;r.squared&quot;</span>), </span>
-<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a>               <span class="at">data =</span> mtcars)</span>
-<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a></span>
-<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a>DA_results</span>
-<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt;                 formula       R^2</span></span>
-<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt; 1              mpg ~ am 0.3597989</span></span>
-<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt; 2             mpg ~ cyl 0.7261800</span></span>
-<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt; 3        mpg ~ am + cyl 0.7590135</span></span>
-<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; 4            mpg ~ carb 0.3035184</span></span>
-<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt; 5       mpg ~ am + carb 0.7036726</span></span>
-<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt; 6      mpg ~ cyl + carb 0.7405408</span></span>
-<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="co">#&gt; 7 mpg ~ am + cyl + carb 0.8113023</span></span></code></pre></div>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a>               <span class="at">data =</span> mtcars)</span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a>DA_results</span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co">#&gt;                 formula       R^2</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt; 1 mpg ~ am + cyl + carb 0.8113023</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt; 2              mpg ~ am 0.3597989</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt; 3             mpg ~ cyl 0.7261800</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt; 4        mpg ~ am + cyl 0.7590135</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; 5            mpg ~ carb 0.3035184</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="co">#&gt; 6       mpg ~ am + carb 0.7036726</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="co">#&gt; 7      mpg ~ cyl + carb 0.7405408</span></span></code></pre></div>
 <p>The printed result from <em>DA_results</em> shows that
-<code>domin</code> runs 7 sub-models; each a different combination of
+<code>domir</code> runs 7 sub-models; each a different combination of
 the IVs. Note that, by default, the sub-model where all IVs are excluded
 is assumed to result in a fit statistic value of 0 and is not estimated
-directly (which can be changed with the <code>consmodel</code> argument
-to <code>domin</code>).</p>
+directly (which can be changed with the <code>.adj</code> argument).</p>
 <p>The <span class="math inline">\(R^2\)</span> values recorded in
 <em>DA_results</em> are used to compute the dominance statistics and
 designations reported on above.</p>
-<div id="complete-dominance-designations-1" class="section level3">
-<h3>Complete Dominance Designations</h3>
-<p>Complete dominance between two IVs is designated by:</p>
-<p><span class="math display">\[X_vDX_z\; if\;2^{p-2}\, =\,
-\Sigma^{2^{p-2}}_{j=1}{ \{\begin{matrix} if\, F_{X_v\; \cup\;S_j}\, &gt;
-F_{X_z\; \cup\;S_j}\, \,then\, 1\, \\ if\, F_{X_v\; \cup\;S_j}\, \le
-F_{X_z\; \cup\;S_j}\,then\, \,0\end{matrix} }\]</span></p>
+<div id="complete-dominance-proportions-1" class="section level3">
+<h3>Complete Dominance Proportions</h3>
+<p>Complete dominance proprtions between two IVs are computed by:</p>
+<p><span class="math display">\[C_{X_vX_z} =\,
+\frac{\Sigma^{2^{p-2}}_{j=1}{ \{\begin{matrix} if\, F_{X_v\;
+\cup\;S_j}\, &gt; F_{X_z\; \cup\;S_j}\, \,then\, 1\, \\ if\, F_{X_v\;
+\cup\;S_j}\, \le F_{X_z\; \cup\;S_j}\,then\, \,0\end{matrix}
+}}{2^{p-2}}\]</span></p>
 <p>Where <span class="math inline">\(X_v\)</span> and <span class="math inline">\(X_z\)</span> are two IVs, <span class="math inline">\(S_j\)</span> is a distinct set of the other IVs in
 the model not including <span class="math inline">\(X_v\)</span> and
 <span class="math inline">\(X_z\)</span> which can include the null set
 (<span class="math inline">\(\emptyset\)</span>) with no other IVs, and
-<span class="math inline">\(F\)</span> is a model fit statistic.
-Conceptually, this computation implies that when <strong>all</strong>
-<span class="math inline">\(2^{p-2}\)</span> comparisons show that <span class="math inline">\(X_v\)</span> is greater than <span class="math inline">\(X_z\)</span>, then <span class="math inline">\(X_v\)</span> completely dominates <span class="math inline">\(X_z\)</span>.</p>
-<p>The results from <em>DA_results</em> can then be used to make the
-comparisons required to determine whether each pair of IVs completely
-dominates the other. The comparison begins with the results for
-<code>am</code> and <code>cyl</code>.</p>
+<span class="math inline">\(F\)</span> is a model fit statistic. This
+computation is then the proportion of all comparable sub-models where
+<span class="math inline">\(X_v\)</span> is greater than <span class="math inline">\(X_z\)</span>.</p>
+<p>The results from <em>DA_results</em> can then be used to compute the
+complete dominance proportions. The comparison begins with the results
+for <code>am</code> and <code>cyl</code>.</p>
 <table>
 <caption>Complete Dominance Comparisons: <code>am</code> versus
 <code>cyl</code></caption>
@@ -773,7 +797,8 @@ dominates the other. The comparison begins with the results for
 are in the rows. As applied to this example, the <span class="math inline">\(S_j\)</span> sets are <span class="math inline">\(\emptyset\)</span> (i.e., the null set) with no
 other IVs and the set also including <em>carb</em>.</p>
 <p>The <span class="math inline">\(R^2\)</span> values across the
-comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>am</em>.</p>
+comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than, and thus completely
+dominates, <em>am</em>.</p>
 <table>
 <caption>Complete Dominance Comparisons: <code>am</code> versus
 <code>carb</code></caption>
@@ -804,7 +829,8 @@ comparable models show that <em>cyl</em> has larger <span class="math inline">\(
 <span class="math inline">\(\emptyset\)</span> and the set also
 including <em>cyl</em>.</p>
 <p>The <span class="math inline">\(R^2\)</span> values across the
-comparable models show that <em>am</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
+comparable models show that <em>am</em> has larger <span class="math inline">\(R^2\)</span> values than and completely dominates
+<em>carb</em>.</p>
 <table>
 <caption>Complete Dominance Comparisons: <code>cyl</code> versus
 <code>carb</code></caption>
@@ -835,14 +861,17 @@ comparable models show that <em>am</em> has larger <span class="math inline">\(R
 <span class="math inline">\(\emptyset\)</span> and the set also
 including <em>am</em>.</p>
 <p>The <span class="math inline">\(R^2\)</span> values across the
-comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than <em>carb</em>.</p>
+comparable models show that <em>cyl</em> has larger <span class="math inline">\(R^2\)</span> values than and completely dominates
+<em>carb</em>.</p>
 <p>Each of these three sets of comparisons are represented in the
-<em>Complete_Dominance</em> matrix.</p>
+<em>Complete_Dominance</em> matrix as a series of proportions. Note that
+the diagonal of the matrix is <code>NA</code> values as it is
+conceptually useless to compare the IV to itself.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>lm_da<span class="sc">$</span>Complete_Dominance</span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;              Dmnated_am Dmnated_cyl Dmnated_carb</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; Dmnates_am           NA       FALSE         TRUE</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; Dmnates_cyl        TRUE          NA         TRUE</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; Dmnates_carb      FALSE       FALSE           NA</span></span></code></pre></div>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;        &gt;_am &gt;_cyl &gt;_carb</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; am_&gt;     NA     0      1</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; cyl_&gt;     1    NA      1</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; carb_&gt;    0     0     NA</span></span></code></pre></div>
 </div>
 <div id="computing-conditional-dominance" class="section level3">
 <h3>Computing Conditional Dominance</h3>
@@ -860,9 +889,10 @@ given the number of elements in the top value (<span class="math inline">\(p-1\)
 <p>In effect, the formula above amounts to an average of the differences
 between each model containing <span class="math inline">\(X_v\)</span>
 from the comparable model not containing it by the number of IVs in the
-model total. As applied to the results from <em>DA_results</em>,
-<em>am</em>’s conditional dominance statistics are computed with the
-following differences:</p>
+model total. These values then reflect the effect of including the IV at
+a specific order in the model. As applied to the results from
+<em>DA_results</em>, <em>am</em>’s conditional dominance statistics are
+computed with the following differences:</p>
 <table style="width:100%;">
 <caption>Conditional Dominance Computations: <code>am</code> with One
 IV/Alone</caption>
@@ -958,14 +988,18 @@ IVs/Full Model</caption>
 </tbody>
 </table>
 <p>The rows of each table represent a difference to be recorded for the
-conditional dominance statistics computation. In the one, two, and three
-IV comparison tables, the model with <em>am</em> is presented first (as
-the minuend) and the comparable model without <em>am</em> is presented
-second (as the subtrahend)—for the 1 IV comparison table, this model is
-the intercept only model that, as is noted above, is assumed to have a
-value of 0. The difference is presented last.</p>
-<p>By table, the differences are averaged resulting in the 0.36 value at
-one IV, the 0.216 at two IVs, and 0.071 at three IVs.</p>
+conditional dominance statistics computation. In the position one, two,
+and three comparison tables, the model with <em>am</em> is presented
+first (as the minuend) and the comparable model without <em>am</em> is
+presented second (as the subtrahend)—for the first IV comparison table,
+this model is the intercept only model that, as is noted above, is
+assumed to have a value of 0. The difference is presented last.</p>
+<p>By table, the differences are averaged resulting in the 0.36 value
+when first, the
+<code>r round(lm_da$Conditional_Dominance[&quot;am&quot;, &quot;``include_at_``2&quot;], digits = 3)</code>
+when second, and
+<code>r round(lm_da$Conditional_Dominance[&quot;am&quot;, &quot;``include_at_``3&quot;], digits = 3)</code>
+when third.</p>
 <p>Next the computations for <em>cyl</em> are reported.</p>
 <table style="width:100%;">
 <caption>Conditional Dominance Computations: <code>cyl</code> with One
@@ -1061,8 +1095,8 @@ IVs/Full Model</caption>
 </tr>
 </tbody>
 </table>
-<p>Again, the differences are averaged resulting in the 0.726 value at
-one IV, the 0.418 at two IVs, and 0.108 at three IVs.</p>
+<p>Again, the differences are averaged resulting in the 0.726 value when
+first, the 0.418 when second, and 0.108 when third.</p>
 <p>Finally, the computations for <em>carb</em>.</p>
 <table style="width:100%;">
 <caption>Conditional Dominance Computations: <code>carb</code> with One
@@ -1159,18 +1193,17 @@ Three IVs/Full Model</caption>
 </tbody>
 </table>
 <p>And again, the differences are averaged resulting in the 0.304 value
-at one IV, the 0.179 at two IVs, and 0.052 at three IVs.</p>
+when first, the 0.179 when second, and 0.052 when third.</p>
 <p>These nine values then populate the conditional dominance statistic
 matrix.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>lm_da<span class="sc">$</span>Conditional_Dominance</span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt;          IVs_1     IVs_2      IVs_3</span></span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; am   0.3597989 0.2164938 0.07076149</span></span>
-<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; cyl  0.7261800 0.4181185 0.10762967</span></span>
-<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; carb 0.3035184 0.1791172 0.05228872</span></span></code></pre></div>
-<p>The conditional dominance matrix’s values can then be used in a way
-similar to the complete dominance designations above in creating a
-series of logical designations indicating whether each IV conditionally
-dominates each other.</p>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt;      include_at_1 include_at_2 include_at_3</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; am      0.3597989    0.2164938   0.07076149</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; cyl     0.7261800    0.4181185   0.10762967</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; carb    0.3035184    0.1791172   0.05228872</span></span></code></pre></div>
+<p>The conditional dominance matrix’s values can then be compared by
+creating a series of logical designations indicating whether each IV
+conditionally dominates each other.</p>
 <p>Below the comparisons begin with <em>am</em> and <em>cyl</em></p>
 <table>
 <caption>Conditional Dominance Designation: <code>am</code> Compared to
@@ -1185,19 +1218,19 @@ dominates each other.</p>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">IVs_1</td>
+<td align="left">include_at_1</td>
 <td align="right">0.360</td>
 <td align="right">0.726</td>
 <td align="left">FALSE</td>
 </tr>
 <tr class="even">
-<td align="left">IVs_2</td>
+<td align="left">include_at_2</td>
 <td align="right">0.216</td>
 <td align="right">0.418</td>
 <td align="left">FALSE</td>
 </tr>
 <tr class="odd">
-<td align="left">IVs_3</td>
+<td align="left">include_at_3</td>
 <td align="right">0.071</td>
 <td align="right">0.108</td>
 <td align="left">FALSE</td>
@@ -1207,7 +1240,8 @@ dominates each other.</p>
 <p>The table above is a transpose of the conditional dominance statistic
 matrix with an additional <em>comparison</em> column indicating whether
 the first IV/<em>am</em>’s conditional dominance statistic at that
-number of IVs is greater than the second IV/<em>cyl</em>’s.</p>
+inclusion position is greater than the second IV/<em>cyl</em>’s at that
+same position.</p>
 <p>Conditional dominance is determined by all values being
 <code>TRUE</code> or <code>FALSE</code>; in this case, <em>cyl</em> is
 seen to conditionally dominate <em>am</em> as all values are
@@ -1226,19 +1260,19 @@ seen to conditionally dominate <em>am</em> as all values are
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">IVs_1</td>
+<td align="left">include_at_1</td>
 <td align="right">0.360</td>
 <td align="right">0.304</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="even">
-<td align="left">IVs_2</td>
+<td align="left">include_at_2</td>
 <td align="right">0.216</td>
 <td align="right">0.179</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="odd">
-<td align="left">IVs_3</td>
+<td align="left">include_at_3</td>
 <td align="right">0.071</td>
 <td align="right">0.052</td>
 <td align="left">TRUE</td>
@@ -1261,19 +1295,19 @@ are <code>TRUE</code>.</p>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">IVs_1</td>
+<td align="left">include_at_1</td>
 <td align="right">0.726</td>
 <td align="right">0.304</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="even">
-<td align="left">IVs_2</td>
+<td align="left">include_at_2</td>
 <td align="right">0.418</td>
 <td align="right">0.179</td>
 <td align="left">TRUE</td>
 </tr>
 <tr class="odd">
-<td align="left">IVs_3</td>
+<td align="left">include_at_3</td>
 <td align="right">0.108</td>
 <td align="right">0.052</td>
 <td align="left">TRUE</td>
@@ -1288,7 +1322,7 @@ matrix. If an IV’s line crosses another IV’s line, then a conditional
 dominance relationship between those two IVs cannot be determined. A
 graphic depicting the trajectory of the three IVs in the focal model is
 depicted below.</p>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 <p>The graph above confirms that all three IV’s lines never cross and
 thus have a clear set of conditional dominance designations.</p>
 <p>As was mentioned in the <strong>Concepts in Application</strong>
@@ -1311,9 +1345,9 @@ statistic value is:</p>
 <caption>General Dominance Computations: <code>am</code></caption>
 <thead>
 <tr class="header">
-<th align="right">IVs_1</th>
-<th align="right">IVs_2</th>
-<th align="right">IVs_3</th>
+<th align="right">include_at_1</th>
+<th align="right">include_at_2</th>
+<th align="right">include_at_3</th>
 <th align="right">general dominance</th>
 </tr>
 </thead>
@@ -1331,9 +1365,9 @@ statistic value is:</p>
 <caption>General Dominance Computations: <code>cyl</code></caption>
 <thead>
 <tr class="header">
-<th align="right">IVs_1</th>
-<th align="right">IVs_2</th>
-<th align="right">IVs_3</th>
+<th align="right">include_at_1</th>
+<th align="right">include_at_2</th>
+<th align="right">include_at_3</th>
 <th align="right">general dominance</th>
 </tr>
 </thead>
@@ -1351,9 +1385,9 @@ statistic value is:</p>
 <caption>General Dominance Computations: <code>carb</code></caption>
 <thead>
 <tr class="header">
-<th align="right">IVs_1</th>
-<th align="right">IVs_2</th>
-<th align="right">IVs_3</th>
+<th align="right">include_at_1</th>
+<th align="right">include_at_2</th>
+<th align="right">include_at_3</th>
 <th align="right">general dominance</th>
 </tr>
 </thead>
@@ -1446,33 +1480,67 @@ that all three IV interrelationships have complete dominance
 designations between them.</p>
 </div>
 </div>
-<div id="parting-thoughts-key-caveat" class="section level1">
-<h1>Parting Thoughts: Key Caveat</h1>
-<p>The DA method implemented by the <code>domir::domin</code> function
-is <em>relatively</em> assumption-free but does make an assumption about
-the nature of the model that is dominance analyzed. DA assumes that the
-predictive model used is “pre-selected”or has passed through model
-selection procedures and the user is confident that the IVs/players in
-the model/game and are, in fact, reasonable to include. DA is
-<em>not</em> intended for use as a model selection tool.</p>
+<div id="parting-thoughts" class="section level1">
+<h1>Parting Thoughts</h1>
 <p>“Relative importance” as a concept is used in many different ways in
-statistics and data science. In many cases, methods that focus on
-relative importance are probably best used for model
-selection/identifying trivial IVs for removal. DA, by contrast, is a
-method that is more focused on importance in a “model evaluation” sense.
-What I mean by model evaluation is an application where the user
-describes/interprets IVs’ effects in the context of a finalized,
-predictive model.</p>
+statistics and data science. In the author’s view, a crucial, but rarely
+acknowledged, difference between DA and many of the relative importance
+statistics produced by methods other than DA, are that many other
+methods are probably most useful for model selection and not for model
+evaluation. In making a distinction between model selection and
+importance, I follow the work of <span class="citation">Azen, Budescu,
+and Reiser (2001)</span> who distinguish between the concept of IV
+criticality and IV importance.</p>
+<div id="criticality-model-selection" class="section level2">
+<h2>Criticality: Model Selection</h2>
+<p>In many cases, methods that focus on relative importance are probably
+best used for model selection. When applied to model selection, a method
+would identify when an IV should be included in the model or not. The
+process of determining whether or not an IV should be included in the
+model is desribed by Azen et al. as reflecting <em>IV
+Criticality</em>.</p>
+<p>In the view of the author, methods such as posterior inclusion
+probability, Akaike weights, and permutation importance are actually IV
+criticality, as opposed to importance, measures. These methods are
+criticality methods as they tend to be informative for identifying
+whether an IV has trivial or non-trivial conribution to prediction but
+is less informative for identifying the magnitude of their
+contribution.</p>
 </div>
-<div class="footnotes footnotes-end-of-document">
-<hr />
-<ol>
-<li id="fn1"><p>Note that the <code>domin</code> function has been
-superseded by the <code>domir</code> function. Despite its programming
-designation, this vignette’s purpose is to illustrate dominance analysis
-concepts and will use <code>domin</code> for this purpose as both
-functions produce identical results.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
-</ol>
+<div id="importance-model-evaluation" class="section level2">
+<h2>Importance: Model Evaluation</h2>
+<p>Model evaluation differs from model selection in that it seeks not to
+determine whether IVs should be in the model, but rather compares them
+in terms of their impact in the model conditional on their being
+included. Thus, importance methods assume that a model has passed
+through a model selection phase and that all the predictors in the model
+have non-trivial effects.</p>
+<p>The DA method implemented by the <code>domir</code> function is an
+importance method in this sense in that it assumes that the predictive
+model used is “pre-selected” or has passed through model selection
+procedures and the user is confident that the IVs model and are, in
+fact, reasonable to include. The results from DA and similar methods
+then provide more information about relative contribution to prediction
+which assists in model evaluation.</p>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-azen2001criticality" class="csl-entry">
+Azen, Razia, David V Budescu, and Benjamin Reiser. 2001.
+<span>“Criticality of Predictors in Multiple Regression.”</span>
+<em>British Journal of Mathematical and Statistical Psychology</em> 54
+(2): 201–25. <a href="https://doi.org/10.1348/000711001159483">https://doi.org/10.1348/000711001159483</a>.
+</div>
+<div id="ref-budescu1993dominance" class="csl-entry">
+Budescu, David V. 1993. <span>“Dominance Analysis: A New Approach to the
+Problem of Relative Importance of Predictors in Multiple
+Regression.”</span> <em>Psychological Bulletin</em> 114 (3): 542–51. <a href="https://doi.org/10.1037/0033-2909.114.3.542">https://doi.org/10.1037/0033-2909.114.3.542</a>.
+</div>
+<div id="ref-gromping2007estimators" class="csl-entry">
+Grömping, Ulrike. 2007. <span>“Estimators of Relative Importance in
+Linear Regression Based on Variance Decomposition.”</span> <em>The
+American Statistician</em> 61 (2): 139–47. <a href="https://doi.org/10.1198/000313007X188252">https://doi.org/10.1198/000313007X188252</a>.
+</div>
+</div>
+</div>
 </div>
 
 

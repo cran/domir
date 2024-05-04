@@ -37,7 +37,7 @@ cyl_c <- c(cyl_mgn[[1]], mean(cyl_mgn[2:3]), cyl_mgn[[4]])
 set_c <- c(set_mgn[[1]], mean(set_mgn[2:3]), set_mgn[[4]])
 
 cdl_names <- list(c("vs", "cyl", "set1"), paste0("IVs_", 1:3))
-cdl_names_new <- list(c("vs", "cyl", "set1"), paste0("subset_size_", 1:3))
+cdl_names_new <- list(c("vs", "cyl", "set1"), paste0("include_at_", 1:3))
 
 cdl_test <- matrix(c(vs_c, cyl_c, set_c), nrow = 3, ncol = 3, 
                    byrow = TRUE, dimnames = cdl_names)
@@ -101,7 +101,7 @@ carb_c2 <- c(carb_mgn2[[1]] - all_test, mean(carb_mgn2[2:3]), carb_mgn2[[4]])
 
 cdl_names2 <- list(c("vs", "cyl", "carb"), paste0("IVs_", 1:3))
 
-cdl_names2_new <- list(c("vs", "cyl", "carb"), paste0("subset_size_", 1:3))
+cdl_names2_new <- list(c("vs", "cyl", "carb"), paste0("include_at_", 1:3))
 
 cdl_test2 <- matrix(c(vs_c2, cyl_c2, carb_c2), nrow = 3, ncol = 3, 
                    byrow = TRUE, dimnames = cdl_names2)
@@ -195,7 +195,7 @@ cyl_cns_c <- c(cyl_cns_mgn[[1]], mean(cyl_cns_mgn[2:3]), cyl_cns_mgn[[4]])
 carb_cns_c <- c(carb_cns_mgn[[1]], mean(carb_cns_mgn[2:3]), carb_cns_mgn[[4]])
 
 cdl_cns_names <- list(c("vs", "cyl", "carb"), paste0("IVs_", 1:3))
-cdl_cns_names_new <- list(c("vs", "cyl", "carb"), paste0("subset_size_", 1:3))
+cdl_cns_names_new <- list(c("vs", "cyl", "carb"), paste0("include_at_", 1:3))
 
 cdl_cns_test <- matrix(c(vs_cns_c, cyl_cns_c, carb_cns_c), nrow = 3, ncol = 3, 
                    byrow = TRUE, dimnames = cdl_cns_names)
@@ -236,27 +236,40 @@ test_that("Test Adjustment Value: domir", {
   )}
 )
 
-cyl_vs_cpt <- switch(sum(c(cyl_cns_mgn[[3]] > vs_cns_mgn[[3]]), 
-                         c(cyl_cns_mgn[[1]] > vs_cns_mgn[[1]]))+1, TRUE, NA, FALSE) 
+cyl_vs_cpt <- mean(c(cyl_cns_mgn[[3]] < vs_cns_mgn[[3]], 
+                         cyl_cns_mgn[[1]] < vs_cns_mgn[[1]]))
 
-carb_vs_cpt <- switch(sum(c(carb_cns_mgn[[3]] > vs_cns_mgn[[2]]), 
-                          c(carb_cns_mgn[[1]] > vs_cns_mgn[[1]]))+1, TRUE, NA, FALSE)
+carb_vs_cpt <- mean(c(carb_cns_mgn[[3]] < vs_cns_mgn[[2]], 
+                          carb_cns_mgn[[1]] < vs_cns_mgn[[1]]))
 
-carb_cyl_cpt <- switch(sum(c(carb_cns_mgn[[2]] > cyl_cns_mgn[[2]]),
-                           c(carb_cns_mgn[[1]] > cyl_cns_mgn[[1]]))+1, TRUE, NA, FALSE)
+carb_cyl_cpt <- mean(c(carb_cns_mgn[[2]] < cyl_cns_mgn[[2]],
+                           carb_cns_mgn[[1]] < cyl_cns_mgn[[1]]))
 
 cpt_rev_test <- matrix(c(NA, cyl_vs_cpt, carb_vs_cpt, 
-                     !cyl_vs_cpt, NA, carb_cyl_cpt, 
-                     !carb_vs_cpt, !carb_cyl_cpt, NA),
+                     1-cyl_vs_cpt, NA, carb_cyl_cpt, 
+                     1-carb_vs_cpt, 1-carb_cyl_cpt, NA),
                    nrow = 3, ncol = 3)
 
 dimnames(cpt_rev_test) <- list(
+  paste0(c("vs", "cyl", "carb"), "_>"),
+  paste0(">_", c("vs", "cyl", "carb"))
+)
+
+dmn_trns <- function(val) {
+  ifelse(val == 1, TRUE, ifelse(val == 0, FALSE, NA))
+}
+cpt_rev_test_dmn <- matrix(c(NA, dmn_trns(cyl_vs_cpt), dmn_trns(carb_vs_cpt), 
+                         dmn_trns(1-cyl_vs_cpt), NA, dmn_trns(carb_cyl_cpt), 
+                         dmn_trns(1-carb_vs_cpt), dmn_trns(1-carb_cyl_cpt), NA),
+                       nrow = 3, ncol = 3)
+
+dimnames(cpt_rev_test_dmn) <- list(
   paste0("Dmnates_", c("vs", "cyl", "carb")),
   paste0("Dmnated_", c("vs", "cyl", "carb"))
 )
 
 test_that("Test Reversed Complete Dominance Designation: domin", {
-  expect_equal(test_obj4$Complete_Dominance, cpt_rev_test
+  expect_equal(test_obj4$Complete_Dominance, cpt_rev_test_dmn
   )})
 
 test_that("Test Reversed Complete Dominance Designation: domir", {
@@ -413,7 +426,7 @@ vsdrat_fl_c <- c(vsdrat_fl_mgn[[1]] - all_val, mean(vsdrat_fl_mgn[2:3]), vsdrat_
 cylhp_fl_c <- c(cylhp_fl_mgn[[1]] - all_val, mean(cylhp_fl_mgn[2:3]), cylhp_fl_mgn[[4]])
 carbi_fl_c <- c(carbi_fl_mgn[[1]] - all_val, mean(carbi_fl_mgn[2:3]), carbi_fl_mgn[[4]])
 
-cdl_fl_names_set <- list(c("infert~carb", "set1", "set2"), paste0("subset_size_", 1:3))
+cdl_fl_names_set <- list(c("infert~carb", "set1", "set2"), paste0("include_at_", 1:3))
 
 cdl_fl_test_set <- matrix(c(carbi_fl_c, vsdrat_fl_c, cylhp_fl_c), nrow = 3, ncol = 3, 
                           byrow = TRUE, dimnames = cdl_fl_names_set)
